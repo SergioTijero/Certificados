@@ -21,7 +21,11 @@ final class Certificados_PDF {
 	public static function stream( $certificate_id ) {
 		$certificate = get_post( $certificate_id );
 		if ( ! $certificate || Certificados_Post_Types::CERTIFICATE_POST_TYPE !== $certificate->post_type ) {
-			wp_die( esc_html__( 'Certificado no encontrado.', 'certificados' ), 404 );
+			wp_die(
+				esc_html__( 'Certificado no encontrado.', 'certificados' ),
+				esc_html__( 'Certificado no encontrado', 'certificados' ),
+				array( 'response' => 404 )
+			);
 		}
 
 		$data = self::get_certificate_data( $certificate_id );

@@ -243,12 +243,20 @@ final class Certificados_Frontend {
 		$certificate_id = absint( wp_unslash( $_GET['certificados_pdf'] ) );
 
 		if ( ! wp_verify_nonce( isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '', 'certificados_pdf_' . $certificate_id ) ) {
-			wp_die( esc_html__( 'Enlace de descarga inválido.', 'certificados' ), 403 );
+			wp_die(
+				esc_html__( 'Enlace de descarga inválido.', 'certificados' ),
+				esc_html__( 'Descarga inválida', 'certificados' ),
+				array( 'response' => 403 )
+			);
 		}
 
 		$user_id = absint( get_post_meta( $certificate_id, '_certificados_user_id', true ) );
 		if ( get_current_user_id() !== $user_id && ! current_user_can( 'edit_post', $certificate_id ) ) {
-			wp_die( esc_html__( 'No tienes permiso para descargar este certificado.', 'certificados' ), 403 );
+			wp_die(
+				esc_html__( 'No tienes permiso para descargar este certificado.', 'certificados' ),
+				esc_html__( 'Permiso denegado', 'certificados' ),
+				array( 'response' => 403 )
+			);
 		}
 
 		Certificados_PDF::stream( $certificate_id );

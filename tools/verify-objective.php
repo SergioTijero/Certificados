@@ -47,4 +47,17 @@ foreach ( $checks as $label => $check ) {
 	echo "[OK] {$label}\n";
 }
 
+$php_files = glob( $root . '/{certificados.php,includes/*.php}', GLOB_BRACE );
+foreach ( $php_files as $file ) {
+	$contents = file_get_contents( $file );
+	if ( preg_match( '/wp_die\s*\([^;]+,\s*(403|404)\s*\)/s', $contents, $match ) ) {
+		fwrite( STDERR, '[FAIL] wp_die HTTP response signature in ' . str_replace( $root . '/', '', $file ) . "\n" );
+		$failed = true;
+	}
+}
+
+if ( ! $failed ) {
+	echo "[OK] wp_die HTTP responses\n";
+}
+
 exit( $failed ? 1 : 0 );

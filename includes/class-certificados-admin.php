@@ -311,7 +311,11 @@ final class Certificados_Admin {
 		$certificate_id = isset( $_GET['certificate_id'] ) ? absint( wp_unslash( $_GET['certificate_id'] ) ) : 0;
 
 		if ( ! $certificate_id || ! current_user_can( 'edit_post', $certificate_id ) ) {
-			wp_die( esc_html__( 'No tienes permiso para descargar este certificado.', 'certificados' ), 403 );
+			wp_die(
+				esc_html__( 'No tienes permiso para descargar este certificado.', 'certificados' ),
+				esc_html__( 'Permiso denegado', 'certificados' ),
+				array( 'response' => 403 )
+			);
 		}
 
 		check_admin_referer( 'certificados_admin_pdf_' . $certificate_id );
