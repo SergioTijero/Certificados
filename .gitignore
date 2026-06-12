@@ -1,0 +1,22 @@
+.DS_Store
+Thumbs.db
+
+# WordPress/runtime generated files
+*.log
+debug.log
+
+# Dependencies/build output
+node_modules/
+vendor/
+dist/
+build/
+
+# Environment/local config
+.env
+.env.*
+!.env.example
+
+# IDE/editor
+.idea/
+.vscode/
+
