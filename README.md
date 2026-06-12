@@ -38,6 +38,12 @@ Prueba ligera de carga del plugin con stubs de WordPress:
 php tools/test-plugin-bootstrap.php
 ```
 
+Prueba ligera del flujo de “Mi cuenta” con certificado simulado:
+
+```bash
+php tools/test-frontend-flow.php
+```
+
 ## Flujo básico
 
 1. En el administrador de WordPress, entra a **Cursos y talleres** y crea un curso.
