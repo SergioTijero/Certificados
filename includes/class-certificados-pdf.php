@@ -75,12 +75,12 @@ final class Certificados_PDF {
 		$images = array();
 		$logo   = ! empty( $data['logo_url'] ) ? self::get_pdf_image_from_url( $data['logo_url'] ) : null;
 		if ( $logo ) {
-			$logo_box = self::fit_image_box( $logo['width'], $logo['height'], 60, 60 );
+			$logo_box = self::fit_image_box( $logo['width'], $logo['height'], 100, 100 );
 			$images[] = array(
 				'name'   => 'LOGO1',
 				'image'  => $logo,
 				'x'      => 396 - $logo_box['width'] / 2,
-				'y'      => 445 + ( 60 - $logo_box['height'] ) / 2,
+				'y'      => 440 + ( 100 - $logo_box['height'] ) / 2,
 				'width'  => $logo_box['width'],
 				'height' => $logo_box['height'],
 			);
@@ -185,7 +185,6 @@ final class Certificados_PDF {
 			);
 		}
 
-		$content .= self::pdf_wrapped_centered_text( 'F1', 10, 48, 530, 696, strtoupper( $data['site_name'] ), 60, 12, 1 );
 		$content .= self::pdf_wrapped_centered_text( 'F2', 32, 48, 390, 696, 'CERTIFICADO', 25, 36, 1 );
 		$content .= self::pdf_wrapped_centered_text( 'F1', 12, 48, 345, 696, 'Se certifica que:', 50, 16, 1 );
 		$content .= self::pdf_wrapped_centered_text( 'F2', 28, 48, 295, 696, $data['participant'], 45, 34, 2 );
@@ -264,8 +263,10 @@ final class Certificados_PDF {
 	 */
 	private static function pdf_wrapped_centered_text( $font, $size, $x, $y, $width, $text, $max_chars, $line_height, $max_lines ) {
 		$content = '';
+		$factor  = ( 'F2' === $font && strtoupper( $text ) === $text ) ? 0.62 : 0.48;
+
 		foreach ( self::wrap_pdf_text( $text, $max_chars, $max_lines ) as $index => $line ) {
-			$estimated_width = strlen( self::escape_pdf_text( $line ) ) * $size * 0.48;
+			$estimated_width = strlen( self::escape_pdf_text( $line ) ) * $size * $factor;
 			$line_x          = $x + max( 0, ( $width - $estimated_width ) / 2 );
 			$content        .= self::pdf_text( $font, $size, (int) $line_x, $y - ( $index * $line_height ), $line );
 		}
@@ -282,7 +283,7 @@ final class Certificados_PDF {
 	 * @return array
 	 */
 	private static function wrap_pdf_text( $text, $max_chars, $max_lines ) {
-		$text  = trim( preg_replace( '/\s+/', ' ', remove_accents( wp_strip_all_tags( (string) $text ) ) ) );
+		$text  = trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( (string) $text ) ) );
 		$words = preg_split( '/\s+/', $text );
 		$lines = array();
 		$line  = '';
