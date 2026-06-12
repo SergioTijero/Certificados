@@ -10,6 +10,7 @@ node_modules/
 vendor/
 dist/
 build/
+*.zip
 
 # Environment/local config
 .env
@@ -19,4 +20,3 @@ build/
 # IDE/editor
 .idea/
 .vscode/
-

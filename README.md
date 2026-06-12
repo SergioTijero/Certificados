@@ -18,6 +18,18 @@ Primera versión funcional en desarrollo. Incluye:
 1. Copia esta carpeta dentro de `wp-content/plugins/certificados`.
 2. Activa el plugin desde el panel de administración de WordPress.
 
+También puedes generar un ZIP instalable desde WordPress:
+
+```bash
+bash tools/build-plugin-zip.sh
+```
+
+El archivo queda en:
+
+```text
+dist/certificados.zip
+```
+
 ## Desarrollo
 
 Archivo principal del plugin:
