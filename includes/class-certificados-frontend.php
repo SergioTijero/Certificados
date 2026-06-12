@@ -55,7 +55,7 @@ final class Certificados_Frontend {
 	 */
 	public static function add_rewrite_rules() {
 		add_rewrite_endpoint( self::ACCOUNT_ENDPOINT, EP_ROOT | EP_PAGES );
-		add_rewrite_rule( '^validar-certificado/([^/]+)/?$', 'index.php?' . self::QUERY_VAR . '=$matches[1]', 'top' );
+		add_rewrite_rule( '^validar-certificado/([^/]+)/?$', 'index.php?pagename=validar-certificado&' . self::QUERY_VAR . '=$matches[1]', 'top' );
 	}
 
 	/**
@@ -130,7 +130,7 @@ final class Certificados_Frontend {
 		}
 
 		$code = get_query_var( self::QUERY_VAR );
-		if ( $code ) {
+		if ( $code && is_404() ) {
 			$this->render_public_verification( sanitize_text_field( $code ) );
 		}
 	}
@@ -299,6 +299,9 @@ final class Certificados_Frontend {
 		);
 
 		$code = $atts['codigo'] ? $atts['codigo'] : $atts['code'];
+		if ( ! $code ) {
+			$code = get_query_var( self::QUERY_VAR );
+		}
 		if ( ! $code && isset( $_GET['certificado'] ) ) {
 			$code = sanitize_text_field( wp_unslash( $_GET['certificado'] ) );
 		}
