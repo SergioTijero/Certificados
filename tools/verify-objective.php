@@ -20,6 +20,7 @@ $checks = array(
 	'course admin fields'           => array( 'includes/class-certificados-admin.php', 'render_course_box' ),
 	'certificate assignment fields' => array( 'includes/class-certificados-admin.php', 'certificados_user_id' ),
 	'bulk certificate assignment'   => array( 'includes/class-certificados-admin.php', 'handle_bulk_assignment' ),
+	'bulk duplicate prevention'     => array( 'includes/class-certificados-admin.php', 'certificate_exists_for_user' ),
 	'certificate admin columns'     => array( 'includes/class-certificados-admin.php', 'certificate_columns' ),
 	'customer AJAX search'          => array( 'includes/class-certificados-admin.php', 'ajax_search_customers' ),
 	'unique validation code'        => array( 'includes/class-certificados-admin.php', 'generate_unique_code' ),

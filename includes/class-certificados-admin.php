@@ -252,8 +252,10 @@ final class Certificados_Admin {
 				<div class="notice notice-success"><p>
 					<?php
 					printf(
-						esc_html__( 'Certificados creados: %d.', 'certificados' ),
-						absint( wp_unslash( $_GET['created'] ) )
+						/* translators: 1: created certificates, 2: skipped certificates. */
+						esc_html__( 'Certificados creados: %1$d. Omitidos por duplicado: %2$d.', 'certificados' ),
+						absint( wp_unslash( $_GET['created'] ) ),
+						isset( $_GET['skipped'] ) ? absint( wp_unslash( $_GET['skipped'] ) ) : 0
 					);
 					?>
 				</p></div>
@@ -362,9 +364,15 @@ final class Certificados_Admin {
 		}
 
 		$created = 0;
+		$skipped = 0;
 		foreach ( array_unique( array_filter( $user_ids ) ) as $user_id ) {
 			$user = get_userdata( $user_id );
 			if ( ! $course_id || ! $user ) {
+				continue;
+			}
+
+			if ( $this->certificate_exists_for_user( $course_id, $user_id ) ) {
+				$skipped++;
 				continue;
 			}
 
@@ -398,6 +406,7 @@ final class Certificados_Admin {
 					'post_type' => Certificados_Post_Types::COURSE_POST_TYPE,
 					'page'      => 'certificados-bulk-assign',
 					'created'   => $created,
+					'skipped'   => $skipped,
 				),
 				admin_url( 'edit.php' )
 			)
@@ -614,6 +623,37 @@ final class Certificados_Admin {
 			),
 			'certificados_admin_pdf_' . absint( $certificate_id )
 		);
+	}
+
+	/**
+	 * Checks whether a customer already has a certificate for a course.
+	 *
+	 * @param int $course_id Course post ID.
+	 * @param int $user_id User ID.
+	 * @return bool
+	 */
+	private function certificate_exists_for_user( $course_id, $user_id ) {
+		$certificates = get_posts(
+			array(
+				'post_type'      => Certificados_Post_Types::CERTIFICATE_POST_TYPE,
+				'post_status'    => 'any',
+				'posts_per_page' => 1,
+				'fields'         => 'ids',
+				'meta_query'     => array(
+					'relation' => 'AND',
+					array(
+						'key'   => '_certificados_course_id',
+						'value' => absint( $course_id ),
+					),
+					array(
+						'key'   => '_certificados_user_id',
+						'value' => absint( $user_id ),
+					),
+				),
+			)
+		);
+
+		return ! empty( $certificates );
 	}
 
 	/**
