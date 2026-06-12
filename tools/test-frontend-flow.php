@@ -57,6 +57,7 @@ function add_action() {}
 function add_filter() {}
 function add_rewrite_endpoint() {}
 function add_rewrite_rule() {}
+function add_shortcode() {}
 
 function __( $text ) {
 	return $text;
@@ -176,6 +177,10 @@ function sanitize_text_field( $value ) {
 	return trim( (string) $value );
 }
 
+function shortcode_atts( $pairs, $atts ) {
+	return array_merge( $pairs, $atts );
+}
+
 function certificados_frontend_test_assert( $condition, $message ) {
 	if ( ! $condition ) {
 		fwrite( STDERR, "[FAIL] {$message}\n" );
@@ -215,3 +220,10 @@ certificados_frontend_test_assert( '_certificados_code' === $GLOBALS['certificad
 
 $missing_data = $method->invoke( null, 'CERT-INCOMPLETE' );
 certificados_frontend_test_assert( null === $missing_data, 'public validation rejects certificates without valid course and customer' );
+
+$shortcode_html = $frontend->validation_shortcode( array( 'codigo' => 'CERT-DEMO123' ) );
+certificados_frontend_test_assert( false !== strpos( $shortcode_html, 'Certificado válido' ), 'validation shortcode renders valid certificate content' );
+certificados_frontend_test_assert( false !== strpos( $shortcode_html, 'Ana Cliente' ), 'validation shortcode renders participant name' );
+
+$empty_shortcode_html = $frontend->validation_shortcode( array() );
+certificados_frontend_test_assert( false !== strpos( $empty_shortcode_html, 'certificados-validation-form' ), 'validation shortcode renders search form without a code' );

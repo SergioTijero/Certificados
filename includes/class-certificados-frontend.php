@@ -47,6 +47,7 @@ final class Certificados_Frontend {
 		add_filter( 'woocommerce_account_menu_items', array( $this, 'add_account_menu_item' ) );
 		add_action( 'woocommerce_account_' . self::ACCOUNT_ENDPOINT . '_endpoint', array( $this, 'render_account_certificates' ) );
 		add_filter( 'the_title', array( $this, 'account_endpoint_title' ) );
+		add_shortcode( 'certificados_validacion', array( $this, 'validation_shortcode' ) );
 	}
 
 	/**
@@ -268,20 +269,63 @@ final class Certificados_Frontend {
 	 * @param string $code Validation code.
 	 */
 	private function render_public_verification( $code ) {
-		$certificate = self::find_certificate_by_code( $code );
-		status_header( $certificate ? 200 : 404 );
+		status_header( self::find_certificate_by_code( $code ) ? 200 : 404 );
 		nocache_headers();
 
 		get_header();
 
-		echo '<main class="certificados-validation" style="max-width: 760px; margin: 40px auto; padding: 0 20px;">';
+		echo '<main class="certificados-validation" style="max-width: 760px; margin: 40px auto; padding: 0 20px;">'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo $this->render_validation_content( $code ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo '</main>';
+
+		get_footer();
+		exit;
+	}
+
+	/**
+	 * Renders validation content through a shortcode for Elementor pages.
+	 *
+	 * @param array $atts Shortcode attributes.
+	 * @return string
+	 */
+	public function validation_shortcode( $atts ) {
+		$atts = shortcode_atts(
+			array(
+				'codigo' => '',
+				'code'   => '',
+			),
+			$atts,
+			'certificados_validacion'
+		);
+
+		$code = $atts['codigo'] ? $atts['codigo'] : $atts['code'];
+		if ( ! $code && isset( $_GET['certificado'] ) ) {
+			$code = sanitize_text_field( wp_unslash( $_GET['certificado'] ) );
+		}
+
+		return '<div class="certificados-validation">' . $this->render_validation_content( $code ) . '</div>';
+	}
+
+	/**
+	 * Builds the certificate validation HTML.
+	 *
+	 * @param string $code Validation code.
+	 * @return string
+	 */
+	private function render_validation_content( $code ) {
+		$code        = sanitize_text_field( $code );
+		$certificate = $code ? self::find_certificate_by_code( $code ) : null;
+
+		ob_start();
 
 		if ( ! $certificate ) {
 			echo '<h1>' . esc_html__( 'Certificado no encontrado', 'certificados' ) . '</h1>';
-			echo '<p>' . esc_html__( 'El código ingresado no corresponde a un certificado emitido.', 'certificados' ) . '</p>';
-			echo '</main>';
-			get_footer();
-			exit;
+			echo '<p>' . esc_html__( 'El código ingresado no corresponde a un certificado emitido o completo.', 'certificados' ) . '</p>';
+			echo '<form method="get" class="certificados-validation-form">';
+			echo '<p><label for="certificados-validacion-codigo">' . esc_html__( 'Código de validación', 'certificados' ) . '</label></p>';
+			echo '<p><input type="text" id="certificados-validacion-codigo" name="certificado" value="' . esc_attr( $code ) . '"> <button type="submit">' . esc_html__( 'Validar', 'certificados' ) . '</button></p>';
+			echo '</form>';
+			return ob_get_clean();
 		}
 
 		$data   = Certificados_PDF::get_certificate_data( $certificate->ID );
@@ -296,10 +340,8 @@ final class Certificados_Frontend {
 		echo '<dt><strong>' . esc_html__( 'Código', 'certificados' ) . '</strong></dt><dd><code>' . esc_html( $data['code'] ) . '</code></dd>';
 		echo '</dl>';
 		echo '<p><img src="' . esc_url( $qr_url ) . '" width="220" height="220" alt="' . esc_attr__( 'Código QR de validación', 'certificados' ) . '"></p>';
-		echo '</main>';
 
-		get_footer();
-		exit;
+		return ob_get_clean();
 	}
 
 	/**
@@ -320,7 +362,7 @@ final class Certificados_Frontend {
 		);
 
 		foreach ( $certificates as $certificate ) {
-			if ( self::certificate_has_required_data( $certificate->ID ) ) {
+			if ( self::is_certificate_publicly_validatable( $certificate->ID ) ) {
 				return $certificate;
 			}
 		}
@@ -334,7 +376,7 @@ final class Certificados_Frontend {
 	 * @param int $certificate_id Certificate post ID.
 	 * @return bool
 	 */
-	private static function certificate_has_required_data( $certificate_id ) {
+	public static function is_certificate_publicly_validatable( $certificate_id ) {
 		$course_id = absint( get_post_meta( $certificate_id, '_certificados_course_id', true ) );
 		$user_id   = absint( get_post_meta( $certificate_id, '_certificados_user_id', true ) );
 

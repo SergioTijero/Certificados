@@ -40,13 +40,61 @@ final class Certificados_Admin {
 	 * Constructor.
 	 */
 	private function __construct() {
+		add_action( 'admin_menu', array( $this, 'add_bulk_assignment_page' ) );
 		add_action( 'add_meta_boxes', array( $this, 'add_meta_boxes' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 		add_action( 'save_post_' . Certificados_Post_Types::COURSE_POST_TYPE, array( $this, 'save_course' ) );
 		add_action( 'save_post_' . Certificados_Post_Types::CERTIFICATE_POST_TYPE, array( $this, 'save_certificate' ) );
 		add_action( 'admin_notices', array( $this, 'woocommerce_notice' ) );
 		add_filter( 'manage_' . Certificados_Post_Types::CERTIFICATE_POST_TYPE . '_posts_columns', array( $this, 'certificate_columns' ) );
 		add_action( 'manage_' . Certificados_Post_Types::CERTIFICATE_POST_TYPE . '_posts_custom_column', array( $this, 'render_certificate_column' ), 10, 2 );
 		add_action( 'admin_post_certificados_download_pdf', array( $this, 'download_certificate_pdf' ) );
+		add_action( 'admin_post_certificados_bulk_assign', array( $this, 'handle_bulk_assignment' ) );
+		add_action( 'wp_ajax_certificados_search_customers', array( $this, 'ajax_search_customers' ) );
+	}
+
+	/**
+	 * Adds bulk assignment submenu.
+	 */
+	public function add_bulk_assignment_page() {
+		add_submenu_page(
+			'edit.php?post_type=' . Certificados_Post_Types::COURSE_POST_TYPE,
+			__( 'Asignar certificados', 'certificados' ),
+			__( 'Asignar certificados', 'certificados' ),
+			'publish_cert_certificates',
+			'certificados-bulk-assign',
+			array( $this, 'render_bulk_assignment_page' )
+		);
+	}
+
+	/**
+	 * Loads admin scripts for customer search.
+	 *
+	 * @param string $hook Current admin hook.
+	 */
+	public function enqueue_admin_assets( $hook ) {
+		$screen = get_current_screen();
+		if ( ! $screen || false === strpos( $screen->id, 'cert' ) ) {
+			return;
+		}
+
+		wp_register_script( 'certificados-admin', false, array(), CERTIFICADOS_VERSION, true );
+		wp_enqueue_script( 'certificados-admin' );
+		wp_localize_script(
+			'certificados-admin',
+			'CertificadosAdmin',
+			array(
+				'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
+				'nonce'         => wp_create_nonce( 'certificados_search_customers' ),
+				'searchingText' => __( 'Buscando...', 'certificados' ),
+				'emptyText'     => __( 'No se encontraron clientes.', 'certificados' ),
+				'removeText'    => __( 'Quitar', 'certificados' ),
+			)
+		);
+		wp_add_inline_script( 'certificados-admin', $this->get_customer_search_script() );
+		wp_register_style( 'certificados-admin', false, array(), CERTIFICADOS_VERSION );
+		wp_enqueue_style( 'certificados-admin' );
+		wp_add_inline_style( 'certificados-admin', $this->get_admin_styles() );
 	}
 
 	/**
@@ -93,13 +141,14 @@ final class Certificados_Admin {
 			</select>
 		</p>
 		<p>
-			<label for="certificados_start_date"><strong><?php esc_html_e( 'Fecha de inicio', 'certificados' ); ?></strong></label><br>
+			<label for="certificados_start_date"><strong><?php esc_html_e( 'Fecha de inicio referencial', 'certificados' ); ?></strong></label><br>
 			<input type="date" id="certificados_start_date" name="certificados_start_date" value="<?php echo esc_attr( $start_date ); ?>">
 		</p>
 		<p>
-			<label for="certificados_end_date"><strong><?php esc_html_e( 'Fecha de finalización', 'certificados' ); ?></strong></label><br>
+			<label for="certificados_end_date"><strong><?php esc_html_e( 'Fecha de finalización referencial', 'certificados' ); ?></strong></label><br>
 			<input type="date" id="certificados_end_date" name="certificados_end_date" value="<?php echo esc_attr( $end_date ); ?>">
 		</p>
+		<p class="description"><?php esc_html_e( 'Estas fechas son opcionales. Para cursos recurrentes, usa la fecha de emisión de cada certificado.', 'certificados' ); ?></p>
 		<?php
 	}
 
@@ -124,7 +173,7 @@ final class Certificados_Admin {
 				'order'          => 'ASC',
 			)
 		);
-		$users      = $this->get_assignable_customers( $user_id );
+		$user       = $user_id ? get_userdata( $user_id ) : false;
 
 		?>
 		<p>
@@ -140,14 +189,7 @@ final class Certificados_Admin {
 		</p>
 		<p>
 			<label for="certificados_user_id"><strong><?php esc_html_e( 'Cliente', 'certificados' ); ?></strong></label><br>
-			<select id="certificados_user_id" name="certificados_user_id" required>
-				<option value=""><?php esc_html_e( 'Seleccionar cliente', 'certificados' ); ?></option>
-				<?php foreach ( $users as $user ) : ?>
-					<option value="<?php echo esc_attr( $user->ID ); ?>" <?php selected( $user_id, $user->ID ); ?>>
-						<?php echo esc_html( sprintf( '%1$s (%2$s)', $user->display_name, $user->user_email ) ); ?>
-					</option>
-				<?php endforeach; ?>
-			</select>
+			<?php $this->render_customer_search_control( 'certificados_user_id', $user, false ); ?>
 		</p>
 		<p>
 			<label for="certificados_issue_date"><strong><?php esc_html_e( 'Fecha de emisión', 'certificados' ); ?></strong></label><br>
@@ -173,6 +215,78 @@ final class Certificados_Admin {
 				</a>
 			</p>
 		<?php endif; ?>
+		<?php
+	}
+
+	/**
+	 * Renders the bulk assignment page.
+	 */
+	public function render_bulk_assignment_page() {
+		if ( ! current_user_can( 'publish_cert_certificates' ) ) {
+			wp_die(
+				esc_html__( 'No tienes permiso para asignar certificados.', 'certificados' ),
+				esc_html__( 'Permiso denegado', 'certificados' ),
+				array( 'response' => 403 )
+			);
+		}
+
+		$courses = get_posts(
+			array(
+				'post_type'      => Certificados_Post_Types::COURSE_POST_TYPE,
+				'post_status'    => 'publish',
+				'posts_per_page' => -1,
+				'orderby'        => 'title',
+				'order'          => 'ASC',
+			)
+		);
+
+		?>
+		<div class="wrap">
+			<h1><?php esc_html_e( 'Asignar certificados en bloque', 'certificados' ); ?></h1>
+			<p><?php esc_html_e( 'Selecciona un curso, busca clientes por nombre o correo y crea un certificado para cada participante.', 'certificados' ); ?></p>
+
+			<?php if ( isset( $_GET['created'] ) ) : ?>
+				<div class="notice notice-success"><p>
+					<?php
+					printf(
+						esc_html__( 'Certificados creados: %d.', 'certificados' ),
+						absint( wp_unslash( $_GET['created'] ) )
+					);
+					?>
+				</p></div>
+			<?php endif; ?>
+
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<input type="hidden" name="action" value="certificados_bulk_assign">
+				<?php wp_nonce_field( 'certificados_bulk_assign', 'certificados_bulk_assign_nonce' ); ?>
+
+				<table class="form-table" role="presentation">
+					<tr>
+						<th scope="row"><label for="certificados_bulk_course_id"><?php esc_html_e( 'Curso o taller', 'certificados' ); ?></label></th>
+						<td>
+							<select id="certificados_bulk_course_id" name="certificados_course_id" required>
+								<option value=""><?php esc_html_e( 'Seleccionar curso', 'certificados' ); ?></option>
+								<?php foreach ( $courses as $course ) : ?>
+									<option value="<?php echo esc_attr( $course->ID ); ?>"><?php echo esc_html( get_the_title( $course ) ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="certificados_bulk_issue_date"><?php esc_html_e( 'Fecha de emisión', 'certificados' ); ?></label></th>
+						<td><input type="date" id="certificados_bulk_issue_date" name="certificados_issue_date" value="<?php echo esc_attr( current_time( 'Y-m-d' ) ); ?>"></td>
+					</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Clientes', 'certificados' ); ?></th>
+						<td>
+							<?php $this->render_customer_search_control( 'certificados_user_ids', null, true ); ?>
+						</td>
+					</tr>
+				</table>
+
+				<?php submit_button( __( 'Crear certificados', 'certificados' ) ); ?>
+			</form>
+		</div>
 		<?php
 	}
 
@@ -223,6 +337,110 @@ final class Certificados_Admin {
 	}
 
 	/**
+	 * Handles bulk certificate creation.
+	 */
+	public function handle_bulk_assignment() {
+		if ( ! current_user_can( 'publish_cert_certificates' ) ) {
+			wp_die(
+				esc_html__( 'No tienes permiso para asignar certificados.', 'certificados' ),
+				esc_html__( 'Permiso denegado', 'certificados' ),
+				array( 'response' => 403 )
+			);
+		}
+
+		check_admin_referer( 'certificados_bulk_assign', 'certificados_bulk_assign_nonce' );
+
+		$course_id  = isset( $_POST['certificados_course_id'] ) ? absint( wp_unslash( $_POST['certificados_course_id'] ) ) : 0;
+		$issue_date = $this->sanitize_date( 'certificados_issue_date' );
+		$user_ids   = isset( $_POST['certificados_user_ids'] ) ? array_map( 'absint', (array) wp_unslash( $_POST['certificados_user_ids'] ) ) : array();
+
+		if ( Certificados_Post_Types::COURSE_POST_TYPE !== get_post_type( $course_id ) ) {
+			$course_id = 0;
+		}
+
+		$created = 0;
+		foreach ( array_unique( array_filter( $user_ids ) ) as $user_id ) {
+			$user = get_userdata( $user_id );
+			if ( ! $course_id || ! $user ) {
+				continue;
+			}
+
+			$certificate_id = wp_insert_post(
+				array(
+					'post_type'   => Certificados_Post_Types::CERTIFICATE_POST_TYPE,
+					'post_status' => 'publish',
+					'post_title'  => sprintf(
+						/* translators: 1: course title, 2: customer name. */
+						__( '%1$s - %2$s', 'certificados' ),
+						get_the_title( $course_id ),
+						$user->display_name
+					),
+				)
+			);
+
+			if ( is_wp_error( $certificate_id ) || ! $certificate_id ) {
+				continue;
+			}
+
+			update_post_meta( $certificate_id, '_certificados_course_id', $course_id );
+			update_post_meta( $certificate_id, '_certificados_user_id', $user_id );
+			update_post_meta( $certificate_id, '_certificados_issue_date', $issue_date );
+			update_post_meta( $certificate_id, '_certificados_code', $this->generate_unique_code() );
+			$created++;
+		}
+
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'post_type' => Certificados_Post_Types::COURSE_POST_TYPE,
+					'page'      => 'certificados-bulk-assign',
+					'created'   => $created,
+				),
+				admin_url( 'edit.php' )
+			)
+		);
+		exit;
+	}
+
+	/**
+	 * Searches customers by name or email.
+	 */
+	public function ajax_search_customers() {
+		if ( ! current_user_can( 'edit_cert_certificates' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permiso denegado.', 'certificados' ) ), 403 );
+		}
+
+		check_ajax_referer( 'certificados_search_customers', 'nonce' );
+
+		$term = isset( $_GET['term'] ) ? sanitize_text_field( wp_unslash( $_GET['term'] ) ) : '';
+		if ( strlen( $term ) < 2 ) {
+			wp_send_json_success( array() );
+		}
+
+		$args = array(
+			'number'         => 20,
+			'orderby'        => 'display_name',
+			'search'         => '*' . $term . '*',
+			'search_columns' => array( 'user_login', 'user_email', 'display_name' ),
+			'fields'         => array( 'ID', 'display_name', 'user_email' ),
+		);
+
+		if ( get_role( 'customer' ) ) {
+			$args['role__in'] = array( 'customer' );
+		}
+
+		$results = array();
+		foreach ( get_users( $args ) as $user ) {
+			$results[] = array(
+				'id'    => absint( $user->ID ),
+				'label' => sprintf( '%1$s (%2$s)', $user->display_name, $user->user_email ),
+			);
+		}
+
+		wp_send_json_success( $results );
+	}
+
+	/**
 	 * Shows a WooCommerce dependency notice when needed.
 	 */
 	public function woocommerce_notice() {
@@ -252,6 +470,7 @@ final class Certificados_Admin {
 		$columns['certificados_customer']   = __( 'Cliente', 'certificados' );
 		$columns['certificados_issue_date'] = __( 'Emisión', 'certificados' );
 		$columns['certificados_code']       = __( 'Código', 'certificados' );
+		$columns['certificados_status']     = __( 'Estado', 'certificados' );
 		$columns['certificados_validate']   = __( 'Validación', 'certificados' );
 		$columns['certificados_pdf']        = __( 'PDF', 'certificados' );
 		$columns['date']                    = $date;
@@ -286,6 +505,14 @@ final class Certificados_Admin {
 			case 'certificados_code':
 				$code = get_post_meta( $post_id, '_certificados_code', true );
 				echo $code ? '<code>' . esc_html( $code ) . '</code>' : '&mdash;';
+				break;
+
+			case 'certificados_status':
+				if ( Certificados_Frontend::is_certificate_publicly_validatable( $post_id ) ) {
+					echo '<span style="color:#008a20;font-weight:600;">' . esc_html__( 'Listo', 'certificados' ) . '</span>';
+				} else {
+					echo '<span style="color:#b32d2e;font-weight:600;">' . esc_html__( 'Incompleto', 'certificados' ) . '</span>';
+				}
 				break;
 
 			case 'certificados_validate':
@@ -368,51 +595,6 @@ final class Certificados_Admin {
 	}
 
 	/**
-	 * Returns WooCommerce customers for certificate assignment.
-	 *
-	 * @param int $selected_user_id Current assigned user ID.
-	 * @return WP_User[]
-	 */
-	private function get_assignable_customers( $selected_user_id ) {
-		$args = array(
-			'fields'  => array( 'ID', 'display_name', 'user_email' ),
-			'orderby' => 'display_name',
-		);
-
-		if ( get_role( 'customer' ) ) {
-			$args['role__in'] = array( 'customer' );
-		}
-
-		$users = get_users( $args );
-
-		if ( $selected_user_id && ! $this->user_exists_in_list( $selected_user_id, $users ) ) {
-			$selected_user = get_userdata( $selected_user_id );
-			if ( $selected_user ) {
-				$users[] = $selected_user;
-			}
-		}
-
-		return $users;
-	}
-
-	/**
-	 * Checks if a user ID exists in a user list.
-	 *
-	 * @param int   $user_id User ID.
-	 * @param array $users User list.
-	 * @return bool
-	 */
-	private function user_exists_in_list( $user_id, array $users ) {
-		foreach ( $users as $user ) {
-			if ( absint( $user->ID ) === absint( $user_id ) ) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	/**
 	 * Builds a secure admin PDF download URL.
 	 *
 	 * @param int $certificate_id Certificate post ID.
@@ -453,5 +635,126 @@ final class Certificados_Admin {
 		} while ( ! empty( $found ) );
 
 		return $code;
+	}
+
+	/**
+	 * Renders a customer AJAX search field.
+	 *
+	 * @param string       $field_name Field name.
+	 * @param WP_User|null $selected_user Selected user.
+	 * @param bool         $multiple Whether multiple users can be selected.
+	 */
+	private function render_customer_search_control( $field_name, $selected_user = null, $multiple = false ) {
+		?>
+		<div class="certificados-customer-picker" data-multiple="<?php echo $multiple ? '1' : '0'; ?>" data-field-name="<?php echo esc_attr( $field_name ); ?>">
+			<input type="search" class="regular-text certificados-customer-search" placeholder="<?php esc_attr_e( 'Buscar por nombre o correo...', 'certificados' ); ?>" autocomplete="off">
+			<div class="certificados-customer-results" aria-live="polite"></div>
+			<div class="certificados-customer-selected">
+				<?php if ( $selected_user ) : ?>
+					<span class="certificados-selected-customer">
+						<?php echo esc_html( sprintf( '%1$s (%2$s)', $selected_user->display_name, $selected_user->user_email ) ); ?>
+						<button type="button" class="button-link certificados-remove-customer"><?php esc_html_e( 'Quitar', 'certificados' ); ?></button>
+						<input type="hidden" name="<?php echo esc_attr( $field_name ); ?>" value="<?php echo esc_attr( $selected_user->ID ); ?>">
+					</span>
+				<?php endif; ?>
+			</div>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Returns customer search JavaScript.
+	 *
+	 * @return string
+	 */
+	private function get_customer_search_script() {
+		return <<<'JS'
+(function () {
+	function debounce(fn, delay) {
+		var timer;
+		return function () {
+			var args = arguments;
+			clearTimeout(timer);
+			timer = setTimeout(function () { fn.apply(null, args); }, delay);
+		};
+	}
+
+	document.addEventListener('click', function (event) {
+		if (event.target.classList.contains('certificados-customer-result')) {
+			var picker = event.target.closest('.certificados-customer-picker');
+			var selected = picker.querySelector('.certificados-customer-selected');
+			var multiple = picker.dataset.multiple === '1';
+			var fieldName = picker.dataset.fieldName + (multiple ? '[]' : '');
+			if (!multiple) {
+				selected.innerHTML = '';
+			}
+			if (selected.querySelector('input[value="' + event.target.dataset.id + '"]')) {
+				return;
+			}
+			var item = document.createElement('span');
+			item.className = 'certificados-selected-customer';
+			item.textContent = event.target.textContent + ' ';
+			var remove = document.createElement('button');
+			remove.type = 'button';
+			remove.className = 'button-link certificados-remove-customer';
+			remove.textContent = CertificadosAdmin.removeText;
+			var input = document.createElement('input');
+			input.type = 'hidden';
+			input.name = fieldName;
+			input.value = event.target.dataset.id;
+			item.appendChild(remove);
+			item.appendChild(input);
+			selected.appendChild(item);
+			picker.querySelector('.certificados-customer-results').innerHTML = '';
+			picker.querySelector('.certificados-customer-search').value = '';
+		}
+
+		if (event.target.classList.contains('certificados-remove-customer')) {
+			event.target.closest('.certificados-selected-customer').remove();
+		}
+	});
+
+	document.querySelectorAll('.certificados-customer-search').forEach(function (input) {
+		input.addEventListener('input', debounce(function () {
+			var picker = input.closest('.certificados-customer-picker');
+			var results = picker.querySelector('.certificados-customer-results');
+			var term = input.value.trim();
+			if (term.length < 2) {
+				results.innerHTML = '';
+				return;
+			}
+			results.innerHTML = '<p>' + CertificadosAdmin.searchingText + '</p>';
+			fetch(CertificadosAdmin.ajaxUrl + '?action=certificados_search_customers&nonce=' + encodeURIComponent(CertificadosAdmin.nonce) + '&term=' + encodeURIComponent(term), {
+				credentials: 'same-origin'
+			})
+				.then(function (response) { return response.json(); })
+				.then(function (payload) {
+					results.innerHTML = '';
+					if (!payload.success || !payload.data.length) {
+						results.innerHTML = '<p>' + CertificadosAdmin.emptyText + '</p>';
+						return;
+					}
+					payload.data.forEach(function (customer) {
+						var button = document.createElement('button');
+						button.type = 'button';
+						button.className = 'button certificados-customer-result';
+						button.dataset.id = customer.id;
+						button.textContent = customer.label;
+						results.appendChild(button);
+					});
+				});
+		}, 250));
+	});
+}());
+JS;
+	}
+
+	/**
+	 * Returns admin CSS.
+	 *
+	 * @return string
+	 */
+	private function get_admin_styles() {
+		return '.certificados-customer-results{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}.certificados-customer-selected{margin-top:8px}.certificados-selected-customer{display:inline-flex;gap:6px;align-items:center;margin:0 6px 6px 0;padding:4px 8px;background:#f0f0f1;border-radius:3px}';
 	}
 }

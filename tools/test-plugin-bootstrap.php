@@ -24,6 +24,7 @@ $GLOBALS['certificados_test'] = array(
 	'flushes'            => 0,
 	'options'            => array(),
 	'roles'              => array(),
+	'shortcodes'         => array(),
 );
 
 class Certificados_Test_Role {
@@ -85,6 +86,10 @@ function add_filter( $hook, $callback ) {
 	$GLOBALS['certificados_test']['filters'][ $hook ][] = $callback;
 }
 
+function add_shortcode( $tag, $callback ) {
+	$GLOBALS['certificados_test']['shortcodes'][ $tag ] = $callback;
+}
+
 function register_post_type( $post_type, $args ) {
 	$GLOBALS['certificados_test']['post_types'][ $post_type ] = $args;
 }
@@ -142,6 +147,11 @@ certificados_test_assert( isset( $state['rewrite_rules']['^validar-certificado/(
 certificados_test_assert( isset( $state['filters']['woocommerce_account_menu_items'] ), 'WooCommerce account menu filter is registered' );
 certificados_test_assert( isset( $state['actions']['woocommerce_account_certificados_endpoint'] ), 'WooCommerce account endpoint renderer is registered' );
 certificados_test_assert( isset( $state['actions']['template_redirect'] ), 'public route handler is registered' );
+certificados_test_assert( isset( $state['shortcodes']['certificados_validacion'] ), 'Elementor-compatible validation shortcode is registered' );
+certificados_test_assert( isset( $state['actions']['admin_menu'] ), 'bulk assignment admin menu is registered' );
+certificados_test_assert( isset( $state['actions']['admin_enqueue_scripts'] ), 'admin customer search assets are registered' );
+certificados_test_assert( isset( $state['actions']['wp_ajax_certificados_search_customers'] ), 'customer AJAX search handler is registered' );
+certificados_test_assert( isset( $state['actions']['admin_post_certificados_bulk_assign'] ), 'bulk assignment handler is registered' );
 certificados_test_assert( isset( $state['actions']['add_meta_boxes'] ), 'admin meta boxes are registered' );
 certificados_test_assert( isset( $state['filters']['manage_cert_certificate_posts_columns'] ), 'certificate admin columns filter is registered' );
 certificados_test_assert( isset( $state['actions']['manage_cert_certificate_posts_custom_column'] ), 'certificate admin custom column renderer is registered' );
