@@ -33,6 +33,7 @@ $checks = array(
 	'Elementor validation shortcode' => array( 'includes/class-certificados-frontend.php', 'certificados_validacion' ),
 	'QR URL helper'                 => array( 'includes/class-certificados-frontend.php', 'get_qr_url' ),
 	'PDF generation'                => array( 'includes/class-certificados-pdf.php', 'Content-Type: application/pdf' ),
+	'PDF brand color'               => array( 'includes/class-certificados-pdf.php', '0.996 0.698 0.043' ),
 	'PDF QR image embedding'        => array( 'includes/class-certificados-pdf.php', '/Subtype /Image' ),
 );
 

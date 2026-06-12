@@ -253,7 +253,7 @@ final class Certificados_Admin {
 					<?php
 					printf(
 						/* translators: 1: created certificates, 2: skipped certificates. */
-						esc_html__( 'Certificados creados: %1$d. Omitidos por duplicado: %2$d.', 'certificados' ),
+						esc_html__( 'Certificados creados: %1$d. Omitidos por duplicado para la misma fecha: %2$d.', 'certificados' ),
 						absint( wp_unslash( $_GET['created'] ) ),
 						isset( $_GET['skipped'] ) ? absint( wp_unslash( $_GET['skipped'] ) ) : 0
 					);
@@ -371,7 +371,7 @@ final class Certificados_Admin {
 				continue;
 			}
 
-			if ( $this->certificate_exists_for_user( $course_id, $user_id ) ) {
+			if ( $this->certificate_exists_for_user( $course_id, $user_id, $issue_date ) ) {
 				$skipped++;
 				continue;
 			}
@@ -629,10 +629,11 @@ final class Certificados_Admin {
 	 * Checks whether a customer already has a certificate for a course.
 	 *
 	 * @param int $course_id Course post ID.
-	 * @param int $user_id User ID.
+	 * @param int    $user_id User ID.
+	 * @param string $issue_date Certificate issue date.
 	 * @return bool
 	 */
-	private function certificate_exists_for_user( $course_id, $user_id ) {
+	private function certificate_exists_for_user( $course_id, $user_id, $issue_date ) {
 		$certificates = get_posts(
 			array(
 				'post_type'      => Certificados_Post_Types::CERTIFICATE_POST_TYPE,
@@ -648,6 +649,10 @@ final class Certificados_Admin {
 					array(
 						'key'   => '_certificados_user_id',
 						'value' => absint( $user_id ),
+					),
+					array(
+						'key'   => '_certificados_issue_date',
+						'value' => $issue_date,
 					),
 				),
 			)

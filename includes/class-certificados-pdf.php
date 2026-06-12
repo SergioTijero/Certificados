@@ -60,6 +60,8 @@ final class Certificados_PDF {
 			'issue_date'       => $issue_date ? $issue_date : current_time( 'Y-m-d' ),
 			'code'             => $code,
 			'verification_url' => Certificados_Frontend::get_verification_url( $code ),
+			'site_name'        => function_exists( 'get_bloginfo' ) ? get_bloginfo( 'name' ) : __( 'Certificado', 'certificados' ),
+			'logo_url'         => self::get_site_logo_url(),
 		);
 	}
 
@@ -70,60 +72,59 @@ final class Certificados_PDF {
 	 * @return string
 	 */
 	private static function build_pdf( array $data ) {
-		$lines = array(
-			'CERTIFICADO',
-			'',
-			'Se certifica que:',
-			$data['participant'],
-			'',
-			'participo satisfactoriamente en:',
-			$data['course'],
-			'',
-			'Modalidad: ' . ucfirst( $data['mode'] ),
-			'Fecha de emision: ' . $data['issue_date'],
-			'Codigo de validacion: ' . $data['code'],
-			'Verificacion: ' . $data['verification_url'],
-		);
+		$images = array();
+		$logo   = ! empty( $data['logo_url'] ) ? self::get_pdf_image_from_url( $data['logo_url'] ) : null;
+		if ( $logo ) {
+			$logo_box = self::fit_image_box( $logo['width'], $logo['height'], 120, 58 );
+			$images[] = array(
+				'name'   => 'LOGO1',
+				'image'  => $logo,
+				'x'      => 246 + ( 120 - $logo_box['width'] ) / 2,
+				'y'      => 696,
+				'width'  => $logo_box['width'],
+				'height' => $logo_box['height'],
+			);
+		}
 
 		$qr_image = self::get_qr_pdf_image( $data['verification_url'] );
-		$content = "BT\n/F1 24 Tf\n72 760 Td\n(CERTIFICADO) Tj\n";
-		$content .= "/F1 12 Tf\n0 -50 Td\n";
-		foreach ( array_slice( $lines, 2 ) as $line ) {
-			$content .= '(' . self::escape_pdf_text( $line ) . ") Tj\n0 -24 Td\n";
-		}
-		$content .= 'ET';
 		if ( $qr_image ) {
-			$content .= "\nq\n130 0 0 130 410 120 cm\n/QR1 Do\nQ\n";
-			$content .= "BT\n/F1 10 Tf\n410 100 Td\n(Escanea para validar) Tj\nET";
+			$images[] = array(
+				'name'   => 'QR1',
+				'image'  => $qr_image,
+				'x'      => 410,
+				'y'      => 118,
+				'width'  => 128,
+				'height' => 128,
+			);
 		}
 
-		$objects   = array();
-		$objects[] = '<< /Type /Catalog /Pages 2 0 R >>'; // 1.
-		$objects[] = '<< /Type /Pages /Kids [3 0 R] /Count 1 >>'; // 2.
-		$resources = '<< /Font << /F1 4 0 R >>';
-		if ( $qr_image ) {
-			$resources .= ' /XObject << /QR1 6 0 R >>';
+		$content = self::build_page_content( $data, $images );
+		$objects = array(
+			'<< /Type /Catalog /Pages 2 0 R >>',
+			'<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+			'', // Page object is filled after image object numbers are known.
+			'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+			'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>',
+			'<< /Length ' . strlen( $content ) . " >>\nstream\n" . $content . "\nendstream",
+		);
+
+		$xobjects = '';
+		foreach ( $images as $image_data ) {
+			$image_object_number = count( $objects ) + 1;
+			$mask_object_number  = ! empty( $image_data['image']['alpha'] ) ? $image_object_number + 1 : 0;
+			$xobjects           .= ' /' . $image_data['name'] . ' ' . $image_object_number . ' 0 R';
+			$objects[]           = self::build_image_object( $image_data['image'], $mask_object_number );
+			if ( $mask_object_number ) {
+				$objects[] = self::build_alpha_object( $image_data['image'] );
+			}
+		}
+
+		$resources = '<< /Font << /F1 4 0 R /F2 5 0 R >>';
+		if ( $xobjects ) {
+			$resources .= ' /XObject <<' . $xobjects . ' >>';
 		}
 		$resources .= ' >>';
-		$objects[] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources ' . $resources . ' /Contents 5 0 R >>'; // 3.
-		$objects[] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'; // 4.
-		$objects[] = '<< /Length ' . strlen( $content ) . " >>\nstream\n" . $content . "\nendstream"; // 5.
-		if ( $qr_image ) {
-			$objects[] = sprintf(
-				"<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /Length %d /SMask 7 0 R >>\nstream\n%s\nendstream",
-				$qr_image['width'],
-				$qr_image['height'],
-				strlen( $qr_image['rgb'] ),
-				$qr_image['rgb']
-			); // 6.
-			$objects[] = sprintf(
-				"<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode /Length %d >>\nstream\n%s\nendstream",
-				$qr_image['width'],
-				$qr_image['height'],
-				strlen( $qr_image['alpha'] ),
-				$qr_image['alpha']
-			); // 7.
-		}
+		$objects[2] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources ' . $resources . ' /Contents 6 0 R >>';
 
 		$pdf     = "%PDF-1.4\n";
 		$offsets = array( 0 );
@@ -157,14 +158,103 @@ final class Certificados_PDF {
 	}
 
 	/**
+	 * Builds the styled certificate page content stream.
+	 *
+	 * @param array $data Certificate data.
+	 * @param array $images PDF image placement data.
+	 * @return string
+	 */
+	private static function build_page_content( array $data, array $images ) {
+		$content  = "q\n0.996 0.698 0.043 RG\n4 w\n36 36 540 720 re S\nQ\n";
+		$content .= "q\n0.996 0.698 0.043 rg\n36 700 540 56 re f\nQ\n";
+		$content .= "q\n0.15 0.15 0.15 RG\n1 w\n50 54 512 628 re S\nQ\n";
+		$content .= "q\n0.996 0.698 0.043 rg\n72 608 468 3 re f\nQ\n";
+
+		foreach ( $images as $image ) {
+			$content .= sprintf(
+				"q\n%.2F 0 0 %.2F %.2F %.2F cm\n/%s Do\nQ\n",
+				$image['width'],
+				$image['height'],
+				$image['x'],
+				$image['y'],
+				$image['name']
+			);
+		}
+
+		$content .= self::pdf_text( 'F2', 28, 208, 650, 'CERTIFICADO' );
+		$content .= self::pdf_text( 'F1', 12, 72, 724, ! empty( $data['site_name'] ) ? $data['site_name'] : ' ' );
+		$content .= self::pdf_text( 'F1', 14, 236, 580, 'Se certifica que:' );
+		$content .= self::pdf_text( 'F2', 26, 130, 540, $data['participant'] );
+		$content .= self::pdf_text( 'F1', 14, 198, 500, 'participo satisfactoriamente en:' );
+		$content .= self::pdf_text( 'F2', 18, 118, 466, $data['course'] );
+		$content .= self::pdf_text( 'F1', 12, 104, 406, 'Modalidad: ' . ucfirst( $data['mode'] ) );
+		$content .= self::pdf_text( 'F1', 12, 104, 382, 'Fecha de emision: ' . $data['issue_date'] );
+		$content .= self::pdf_text( 'F1', 12, 104, 358, 'Codigo de validacion: ' . $data['code'] );
+		$content .= self::pdf_text( 'F1', 9, 104, 332, 'Verificacion: ' . $data['verification_url'] );
+		if ( self::has_pdf_image( $images, 'QR1' ) ) {
+			$content .= self::pdf_text( 'F1', 10, 408, 96, 'Escanea para validar' );
+		}
+
+		return $content;
+	}
+
+	/**
+	 * Builds one PDF text operation.
+	 *
+	 * @param string $font Font resource name.
+	 * @param int    $size Font size.
+	 * @param int    $x X coordinate.
+	 * @param int    $y Y coordinate.
+	 * @param string $text Text.
+	 * @return string
+	 */
+	private static function pdf_text( $font, $size, $x, $y, $text ) {
+		return sprintf(
+			"BT\n/%s %d Tf\n%d %d Td\n(%s) Tj\nET\n",
+			$font,
+			$size,
+			$x,
+			$y,
+			self::escape_pdf_text( $text )
+		);
+	}
+
+	/**
+	 * Checks if an image placement list contains a named image.
+	 *
+	 * @param array  $images Image placements.
+	 * @param string $name Image resource name.
+	 * @return bool
+	 */
+	private static function has_pdf_image( array $images, $name ) {
+		foreach ( $images as $image ) {
+			if ( $name === $image['name'] ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Fetches and converts a QR PNG into PDF image streams.
 	 *
 	 * @param string $verification_url Public verification URL.
 	 * @return array|null
 	 */
 	private static function get_qr_pdf_image( $verification_url ) {
+		return self::get_pdf_image_from_url( Certificados_Frontend::get_qr_url( $verification_url, 180 ) );
+	}
+
+	/**
+	 * Fetches and converts a PNG into PDF image streams.
+	 *
+	 * @param string $url Image URL.
+	 * @return array|null
+	 */
+	private static function get_pdf_image_from_url( $url ) {
 		$response = wp_remote_get(
-			Certificados_Frontend::get_qr_url( $verification_url, 180 ),
+			$url,
 			array(
 				'timeout' => 8,
 			)
@@ -174,16 +264,34 @@ final class Certificados_PDF {
 			return null;
 		}
 
-		return self::png_rgba_to_pdf_streams( wp_remote_retrieve_body( $response ) );
+		return self::image_to_pdf_streams( wp_remote_retrieve_body( $response ) );
 	}
 
 	/**
-	 * Converts a non-interlaced 8-bit RGBA PNG to compressed PDF image streams.
+	 * Converts a supported image into PDF image stream data.
+	 *
+	 * @param string $bytes Image bytes.
+	 * @return array|null
+	 */
+	private static function image_to_pdf_streams( $bytes ) {
+		if ( substr( $bytes, 0, 8 ) === "\x89PNG\r\n\x1a\n" ) {
+			return self::png_to_pdf_streams( $bytes );
+		}
+
+		if ( substr( $bytes, 0, 2 ) === "\xff\xd8" ) {
+			return self::jpeg_to_pdf_streams( $bytes );
+		}
+
+		return null;
+	}
+
+	/**
+	 * Converts a non-interlaced 8-bit RGB/RGBA PNG to compressed PDF image streams.
 	 *
 	 * @param string $png PNG bytes.
 	 * @return array|null
 	 */
-	private static function png_rgba_to_pdf_streams( $png ) {
+	private static function png_to_pdf_streams( $png ) {
 		if ( substr( $png, 0, 8 ) !== "\x89PNG\r\n\x1a\n" ) {
 			return null;
 		}
@@ -201,11 +309,12 @@ final class Certificados_PDF {
 
 			if ( 'IHDR' === $type ) {
 				$header = unpack( 'Nwidth/Nheight/Cdepth/Ccolor/Ccompression/Cfilter/Cinterlace', $data );
-				if ( 8 !== $header['depth'] || 6 !== $header['color'] || 0 !== $header['interlace'] ) {
+				if ( 8 !== $header['depth'] || ! in_array( $header['color'], array( 2, 6 ), true ) || 0 !== $header['interlace'] ) {
 					return null;
 				}
 				$width  = (int) $header['width'];
 				$height = (int) $header['height'];
+				$color  = (int) $header['color'];
 			} elseif ( 'IDAT' === $type ) {
 				$idat .= $data;
 			} elseif ( 'IEND' === $type ) {
@@ -222,7 +331,7 @@ final class Certificados_PDF {
 			return null;
 		}
 
-		$bytes_per_pixel = 4;
+		$bytes_per_pixel = 6 === $color ? 4 : 3;
 		$stride          = $width * $bytes_per_pixel;
 		$position        = 0;
 		$previous        = array_fill( 0, $stride, 0 );
@@ -236,9 +345,11 @@ final class Certificados_PDF {
 			$position += $stride;
 			$current  = self::unfilter_png_scanline( $scanline, $previous, $bytes_per_pixel, $filter );
 
-			for ( $i = 0; $i < $stride; $i += 4 ) {
+			for ( $i = 0; $i < $stride; $i += $bytes_per_pixel ) {
 				$rgb   .= chr( $current[ $i ] ) . chr( $current[ $i + 1 ] ) . chr( $current[ $i + 2 ] );
-				$alpha .= chr( $current[ $i + 3 ] );
+				if ( 4 === $bytes_per_pixel ) {
+					$alpha .= chr( $current[ $i + 3 ] );
+				}
 			}
 
 			$previous = $current;
@@ -248,8 +359,105 @@ final class Certificados_PDF {
 			'width'  => $width,
 			'height' => $height,
 			'rgb'    => gzcompress( $rgb ),
-			'alpha'  => gzcompress( $alpha ),
+			'alpha'  => $alpha ? gzcompress( $alpha ) : '',
+			'filter' => 'FlateDecode',
 		);
+	}
+
+	/**
+	 * Converts a JPEG to PDF image stream data.
+	 *
+	 * @param string $jpeg JPEG bytes.
+	 * @return array|null
+	 */
+	private static function jpeg_to_pdf_streams( $jpeg ) {
+		$size = function_exists( 'getimagesizefromstring' ) ? getimagesizefromstring( $jpeg ) : false;
+		if ( ! $size || empty( $size[0] ) || empty( $size[1] ) ) {
+			return null;
+		}
+
+		return array(
+			'width'  => (int) $size[0],
+			'height' => (int) $size[1],
+			'rgb'    => $jpeg,
+			'alpha'  => '',
+			'filter' => 'DCTDecode',
+		);
+	}
+
+	/**
+	 * Builds a PDF image object.
+	 *
+	 * @param array $image Image stream data.
+	 * @param int   $mask_object_number Optional soft mask object number.
+	 * @return string
+	 */
+	private static function build_image_object( array $image, $mask_object_number = 0 ) {
+		$mask = $mask_object_number ? ' /SMask ' . absint( $mask_object_number ) . ' 0 R' : '';
+
+		return sprintf(
+			"<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /%s /Length %d%s >>\nstream\n%s\nendstream",
+			$image['width'],
+			$image['height'],
+			isset( $image['filter'] ) ? $image['filter'] : 'FlateDecode',
+			strlen( $image['rgb'] ),
+			$mask,
+			$image['rgb']
+		);
+	}
+
+	/**
+	 * Builds a PDF alpha mask object.
+	 *
+	 * @param array $image Image stream data.
+	 * @return string
+	 */
+	private static function build_alpha_object( array $image ) {
+		return sprintf(
+			"<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode /Length %d >>\nstream\n%s\nendstream",
+			$image['width'],
+			$image['height'],
+			strlen( $image['alpha'] ),
+			$image['alpha']
+		);
+	}
+
+	/**
+	 * Fits an image inside a target box.
+	 *
+	 * @param int $width Source width.
+	 * @param int $height Source height.
+	 * @param int $max_width Max width.
+	 * @param int $max_height Max height.
+	 * @return array
+	 */
+	private static function fit_image_box( $width, $height, $max_width, $max_height ) {
+		$ratio = min( $max_width / max( 1, $width ), $max_height / max( 1, $height ) );
+
+		return array(
+			'width'  => $width * $ratio,
+			'height' => $height * $ratio,
+		);
+	}
+
+	/**
+	 * Returns the current site logo URL.
+	 *
+	 * @return string
+	 */
+	private static function get_site_logo_url() {
+		if ( ! function_exists( 'get_theme_mod' ) || ! function_exists( 'wp_get_attachment_image_src' ) ) {
+			return '';
+		}
+
+		$logo_id = absint( get_theme_mod( 'custom_logo' ) );
+		if ( ! $logo_id ) {
+			return '';
+		}
+
+		$logo = wp_get_attachment_image_src( $logo_id, 'full' );
+
+		return is_array( $logo ) && ! empty( $logo[0] ) ? $logo[0] : '';
 	}
 
 	/**
