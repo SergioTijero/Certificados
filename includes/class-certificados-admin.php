@@ -46,6 +46,7 @@ final class Certificados_Admin {
 		add_action( 'admin_notices', array( $this, 'woocommerce_notice' ) );
 		add_filter( 'manage_' . Certificados_Post_Types::CERTIFICATE_POST_TYPE . '_posts_columns', array( $this, 'certificate_columns' ) );
 		add_action( 'manage_' . Certificados_Post_Types::CERTIFICATE_POST_TYPE . '_posts_custom_column', array( $this, 'render_certificate_column' ), 10, 2 );
+		add_action( 'admin_post_certificados_download_pdf', array( $this, 'download_certificate_pdf' ) );
 	}
 
 	/**
@@ -166,6 +167,11 @@ final class Certificados_Admin {
 					<?php esc_html_e( 'Ver página pública de validación', 'certificados' ); ?>
 				</a>
 			</p>
+			<p>
+				<a class="button button-primary" href="<?php echo esc_url( $this->get_admin_pdf_url( $post->ID ) ); ?>">
+					<?php esc_html_e( 'Descargar PDF', 'certificados' ); ?>
+				</a>
+			</p>
 		<?php endif; ?>
 		<?php
 	}
@@ -247,6 +253,7 @@ final class Certificados_Admin {
 		$columns['certificados_issue_date'] = __( 'Emisión', 'certificados' );
 		$columns['certificados_code']       = __( 'Código', 'certificados' );
 		$columns['certificados_validate']   = __( 'Validación', 'certificados' );
+		$columns['certificados_pdf']        = __( 'PDF', 'certificados' );
 		$columns['date']                    = $date;
 
 		return $columns;
@@ -290,7 +297,26 @@ final class Certificados_Admin {
 
 				echo '<a href="' . esc_url( Certificados_Frontend::get_verification_url( $code ) ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Validar', 'certificados' ) . '</a>';
 				break;
+
+			case 'certificados_pdf':
+				echo '<a href="' . esc_url( $this->get_admin_pdf_url( $post_id ) ) . '">' . esc_html__( 'Descargar', 'certificados' ) . '</a>';
+				break;
 		}
+	}
+
+	/**
+	 * Handles administrator PDF downloads.
+	 */
+	public function download_certificate_pdf() {
+		$certificate_id = isset( $_GET['certificate_id'] ) ? absint( wp_unslash( $_GET['certificate_id'] ) ) : 0;
+
+		if ( ! $certificate_id || ! current_user_can( 'edit_post', $certificate_id ) ) {
+			wp_die( esc_html__( 'No tienes permiso para descargar este certificado.', 'certificados' ), 403 );
+		}
+
+		check_admin_referer( 'certificados_admin_pdf_' . $certificate_id );
+
+		Certificados_PDF::stream( $certificate_id );
 	}
 
 	/**
@@ -380,6 +406,25 @@ final class Certificados_Admin {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Builds a secure admin PDF download URL.
+	 *
+	 * @param int $certificate_id Certificate post ID.
+	 * @return string
+	 */
+	private function get_admin_pdf_url( $certificate_id ) {
+		return wp_nonce_url(
+			add_query_arg(
+				array(
+					'action'         => 'certificados_download_pdf',
+					'certificate_id' => absint( $certificate_id ),
+				),
+				admin_url( 'admin-post.php' )
+			),
+			'certificados_admin_pdf_' . absint( $certificate_id )
+		);
 	}
 
 	/**

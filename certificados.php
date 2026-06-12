@@ -3,7 +3,7 @@
  * Plugin Name: Certificados
  * Plugin URI: https://example.com/certificados
  * Description: Plugin para gestionar y emitir certificados en WordPress.
- * Version: 0.3.2
+ * Version: 0.3.3
  * Author: Sergio Tijero
  * Author URI: https://example.com
  * Text Domain: certificados
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'CERTIFICADOS_VERSION', '0.3.2' );
+define( 'CERTIFICADOS_VERSION', '0.3.3' );
 define( 'CERTIFICADOS_PLUGIN_FILE', __FILE__ );
 define( 'CERTIFICADOS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'CERTIFICADOS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );

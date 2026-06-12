@@ -24,6 +24,7 @@ $checks = array(
 	'woocommerce account endpoint'  => array( 'includes/class-certificados-frontend.php', "const ACCOUNT_ENDPOINT = 'certificados';" ),
 	'account certificate listing'   => array( 'includes/class-certificados-frontend.php', 'render_account_certificates' ),
 	'secure PDF download'           => array( 'includes/class-certificados-frontend.php', 'handle_pdf_download' ),
+	'admin PDF download'            => array( 'includes/class-certificados-admin.php', 'download_certificate_pdf' ),
 	'public validation route'       => array( 'includes/class-certificados-frontend.php', 'validar-certificado' ),
 	'QR URL helper'                 => array( 'includes/class-certificados-frontend.php', 'get_qr_url' ),
 	'PDF generation'                => array( 'includes/class-certificados-pdf.php', 'Content-Type: application/pdf' ),

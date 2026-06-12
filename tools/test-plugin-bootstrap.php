@@ -142,6 +142,7 @@ certificados_test_assert( isset( $state['actions']['template_redirect'] ), 'publ
 certificados_test_assert( isset( $state['actions']['add_meta_boxes'] ), 'admin meta boxes are registered' );
 certificados_test_assert( isset( $state['filters']['manage_cert_certificate_posts_columns'] ), 'certificate admin columns filter is registered' );
 certificados_test_assert( isset( $state['actions']['manage_cert_certificate_posts_custom_column'] ), 'certificate admin custom column renderer is registered' );
+certificados_test_assert( isset( $state['actions']['admin_post_certificados_download_pdf'] ), 'admin PDF download handler is registered' );
 certificados_test_assert( get_option( 'certificados_capabilities_version' ) === CERTIFICADOS_VERSION, 'capabilities version is stored' );
 
 foreach ( array( 'administrator', 'shop_manager' ) as $role_name ) {
