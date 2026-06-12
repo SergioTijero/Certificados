@@ -109,7 +109,10 @@ final class Certificados_Post_Types {
 	 * @return array
 	 */
 	public static function get_all_capabilities() {
-		$capabilities = array_merge( self::get_course_capabilities(), self::get_certificate_capabilities() );
+		$capabilities = array_merge(
+			array_values( self::get_course_capabilities() ),
+			array_values( self::get_certificate_capabilities() )
+		);
 
 		return array_values( array_unique( $capabilities ) );
 	}

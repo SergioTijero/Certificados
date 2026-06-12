@@ -32,6 +32,12 @@ Verificación estática del flujo esencial:
 php tools/verify-objective.php
 ```
 
+Prueba ligera de carga del plugin con stubs de WordPress:
+
+```bash
+php tools/test-plugin-bootstrap.php
+```
+
 ## Flujo básico
 
 1. En el administrador de WordPress, entra a **Cursos y talleres** y crea un curso.
