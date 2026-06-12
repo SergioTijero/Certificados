@@ -34,6 +34,7 @@ $checks = array(
 	'QR URL helper'                 => array( 'includes/class-certificados-frontend.php', 'get_qr_url' ),
 	'PDF generation'                => array( 'includes/class-certificados-pdf.php', 'Content-Type: application/pdf' ),
 	'PDF brand color'               => array( 'includes/class-certificados-pdf.php', '0.996 0.698 0.043' ),
+	'PDF wrapped text'              => array( 'includes/class-certificados-pdf.php', 'wrap_pdf_text' ),
 	'PDF QR image embedding'        => array( 'includes/class-certificados-pdf.php', '/Subtype /Image' ),
 );
 

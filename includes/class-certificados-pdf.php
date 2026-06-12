@@ -184,13 +184,13 @@ final class Certificados_PDF {
 		$content .= self::pdf_text( 'F2', 28, 208, 650, 'CERTIFICADO' );
 		$content .= self::pdf_text( 'F1', 12, 72, 724, ! empty( $data['site_name'] ) ? $data['site_name'] : ' ' );
 		$content .= self::pdf_text( 'F1', 14, 236, 580, 'Se certifica que:' );
-		$content .= self::pdf_text( 'F2', 26, 130, 540, $data['participant'] );
+		$content .= self::pdf_wrapped_centered_text( 'F2', 26, 72, 540, 468, $data['participant'], 35, 30, 2 );
 		$content .= self::pdf_text( 'F1', 14, 198, 500, 'participo satisfactoriamente en:' );
-		$content .= self::pdf_text( 'F2', 18, 118, 466, $data['course'] );
+		$content .= self::pdf_wrapped_centered_text( 'F2', 18, 84, 466, 444, $data['course'], 48, 24, 3 );
 		$content .= self::pdf_text( 'F1', 12, 104, 406, 'Modalidad: ' . ucfirst( $data['mode'] ) );
 		$content .= self::pdf_text( 'F1', 12, 104, 382, 'Fecha de emision: ' . $data['issue_date'] );
 		$content .= self::pdf_text( 'F1', 12, 104, 358, 'Codigo de validacion: ' . $data['code'] );
-		$content .= self::pdf_text( 'F1', 9, 104, 332, 'Verificacion: ' . $data['verification_url'] );
+		$content .= self::pdf_wrapped_text( 'F1', 9, 104, 332, 'Verificacion: ' . $data['verification_url'], 92, 12, 2 );
 		if ( self::has_pdf_image( $images, 'QR1' ) ) {
 			$content .= self::pdf_text( 'F1', 10, 408, 96, 'Escanea para validar' );
 		}
@@ -217,6 +217,92 @@ final class Certificados_PDF {
 			$y,
 			self::escape_pdf_text( $text )
 		);
+	}
+
+	/**
+	 * Builds wrapped PDF text operations.
+	 *
+	 * @param string $font Font resource name.
+	 * @param int    $size Font size.
+	 * @param int    $x X coordinate.
+	 * @param int    $y Y coordinate.
+	 * @param string $text Text.
+	 * @param int    $max_chars Max characters per line.
+	 * @param int    $line_height Distance between lines.
+	 * @param int    $max_lines Max number of lines.
+	 * @return string
+	 */
+	private static function pdf_wrapped_text( $font, $size, $x, $y, $text, $max_chars, $line_height, $max_lines ) {
+		$content = '';
+		foreach ( self::wrap_pdf_text( $text, $max_chars, $max_lines ) as $index => $line ) {
+			$content .= self::pdf_text( $font, $size, $x, $y - ( $index * $line_height ), $line );
+		}
+
+		return $content;
+	}
+
+	/**
+	 * Builds centered wrapped PDF text operations.
+	 *
+	 * @param string $font Font resource name.
+	 * @param int    $size Font size.
+	 * @param int    $x X coordinate for the text box.
+	 * @param int    $y Y coordinate.
+	 * @param int    $width Width of the text box.
+	 * @param string $text Text.
+	 * @param int    $max_chars Max characters per line.
+	 * @param int    $line_height Distance between lines.
+	 * @param int    $max_lines Max number of lines.
+	 * @return string
+	 */
+	private static function pdf_wrapped_centered_text( $font, $size, $x, $y, $width, $text, $max_chars, $line_height, $max_lines ) {
+		$content = '';
+		foreach ( self::wrap_pdf_text( $text, $max_chars, $max_lines ) as $index => $line ) {
+			$estimated_width = strlen( self::escape_pdf_text( $line ) ) * $size * 0.48;
+			$line_x          = $x + max( 0, ( $width - $estimated_width ) / 2 );
+			$content        .= self::pdf_text( $font, $size, (int) $line_x, $y - ( $index * $line_height ), $line );
+		}
+
+		return $content;
+	}
+
+	/**
+	 * Wraps text into a limited number of PDF-safe lines.
+	 *
+	 * @param string $text Text.
+	 * @param int    $max_chars Max characters per line.
+	 * @param int    $max_lines Max number of lines.
+	 * @return array
+	 */
+	private static function wrap_pdf_text( $text, $max_chars, $max_lines ) {
+		$text  = trim( preg_replace( '/\s+/', ' ', remove_accents( wp_strip_all_tags( (string) $text ) ) ) );
+		$words = preg_split( '/\s+/', $text );
+		$lines = array();
+		$line  = '';
+
+		foreach ( $words as $word ) {
+			$test = $line ? $line . ' ' . $word : $word;
+			if ( strlen( $test ) > $max_chars && $line ) {
+				$lines[] = $line;
+				$line    = $word;
+				if ( count( $lines ) >= $max_lines ) {
+					break;
+				}
+			} else {
+				$line = $test;
+			}
+		}
+
+		if ( $line && count( $lines ) < $max_lines ) {
+			$lines[] = $line;
+		}
+
+		if ( count( $lines ) === $max_lines && ! empty( $words ) && implode( ' ', $lines ) !== $text ) {
+			$last_index          = count( $lines ) - 1;
+			$lines[ $last_index ] = rtrim( substr( $lines[ $last_index ], 0, max( 0, $max_chars - 3 ) ) ) . '...';
+		}
+
+		return $lines ? $lines : array( '' );
 	}
 
 	/**
