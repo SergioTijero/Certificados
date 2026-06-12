@@ -27,6 +27,7 @@ $checks = array(
 	'secure PDF download'           => array( 'includes/class-certificados-frontend.php', 'handle_pdf_download' ),
 	'admin PDF download'            => array( 'includes/class-certificados-admin.php', 'download_certificate_pdf' ),
 	'public validation route'       => array( 'includes/class-certificados-frontend.php', 'validar-certificado' ),
+	'public validation completeness' => array( 'includes/class-certificados-frontend.php', 'certificate_has_required_data' ),
 	'QR URL helper'                 => array( 'includes/class-certificados-frontend.php', 'get_qr_url' ),
 	'PDF generation'                => array( 'includes/class-certificados-pdf.php', 'Content-Type: application/pdf' ),
 	'PDF QR image embedding'        => array( 'includes/class-certificados-pdf.php', '/Subtype /Image' ),

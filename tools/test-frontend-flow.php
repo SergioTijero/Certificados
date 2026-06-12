@@ -32,6 +32,17 @@ $GLOBALS['certificados_frontend_test'] = array(
 				'_certificados_code'       => 'CERT-DEMO123',
 			),
 		),
+		303 => array(
+			'ID'        => 303,
+			'post_type' => 'cert_certificate',
+			'title'     => 'Certificado Incompleto',
+			'meta'      => array(
+				'_certificados_course_id'  => 999,
+				'_certificados_user_id'    => 404,
+				'_certificados_issue_date' => '2026-06-12',
+				'_certificados_code'       => 'CERT-INCOMPLETE',
+			),
+		),
 	),
 	'users'           => array(
 		7 => array(
@@ -131,6 +142,12 @@ function get_the_title( $post_id ) {
 		: '';
 }
 
+function get_post_type( $post_id ) {
+	return isset( $GLOBALS['certificados_frontend_test']['posts'][ $post_id ] )
+		? $GLOBALS['certificados_frontend_test']['posts'][ $post_id ]['post_type']
+		: false;
+}
+
 function current_time() {
 	return '2026-06-12';
 }
@@ -195,3 +212,6 @@ $found = $method->invoke( null, 'CERT-DEMO123' );
 
 certificados_frontend_test_assert( $found && 202 === $found->ID, 'public validation lookup finds certificate by code' );
 certificados_frontend_test_assert( '_certificados_code' === $GLOBALS['certificados_frontend_test']['last_get_posts']['meta_key'], 'public lookup uses validation code meta key' );
+
+$missing_data = $method->invoke( null, 'CERT-INCOMPLETE' );
+certificados_frontend_test_assert( null === $missing_data, 'public validation rejects certificates without valid course and customer' );

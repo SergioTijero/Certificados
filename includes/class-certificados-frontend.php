@@ -313,12 +313,36 @@ final class Certificados_Frontend {
 			array(
 				'post_type'      => Certificados_Post_Types::CERTIFICATE_POST_TYPE,
 				'post_status'    => 'publish',
-				'posts_per_page' => 1,
+				'posts_per_page' => -1,
 				'meta_key'       => '_certificados_code',
 				'meta_value'     => sanitize_text_field( $code ),
 			)
 		);
 
-		return $certificates ? $certificates[0] : null;
+		foreach ( $certificates as $certificate ) {
+			if ( self::certificate_has_required_data( $certificate->ID ) ) {
+				return $certificate;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Checks whether a certificate can be publicly validated.
+	 *
+	 * @param int $certificate_id Certificate post ID.
+	 * @return bool
+	 */
+	private static function certificate_has_required_data( $certificate_id ) {
+		$course_id = absint( get_post_meta( $certificate_id, '_certificados_course_id', true ) );
+		$user_id   = absint( get_post_meta( $certificate_id, '_certificados_user_id', true ) );
+
+		return (
+			$course_id
+			&& Certificados_Post_Types::COURSE_POST_TYPE === get_post_type( $course_id )
+			&& $user_id
+			&& get_userdata( $user_id )
+		);
 	}
 }
