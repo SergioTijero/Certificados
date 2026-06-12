@@ -48,6 +48,7 @@ final class Certificados_Frontend {
 		add_action( 'woocommerce_account_' . self::ACCOUNT_ENDPOINT . '_endpoint', array( $this, 'render_account_certificates' ) );
 		add_filter( 'the_title', array( $this, 'account_endpoint_title' ) );
 		add_shortcode( 'certificados_validacion', array( $this, 'validation_shortcode' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
 	}
 
 	/**
@@ -133,6 +134,197 @@ final class Certificados_Frontend {
 		if ( $code && is_404() ) {
 			$this->render_public_verification( sanitize_text_field( $code ) );
 		}
+	}
+
+	/**
+	 * Enqueues frontend styles.
+	 */
+	public function enqueue_frontend_assets() {
+		$code = get_query_var( self::QUERY_VAR );
+		if ( $code || ( function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( self::ACCOUNT_ENDPOINT ) ) ) {
+			wp_register_style( 'certificados-frontend', false, array(), CERTIFICADOS_VERSION );
+			wp_enqueue_style( 'certificados-frontend' );
+			wp_add_inline_style( 'certificados-frontend', $this->get_frontend_styles() );
+		}
+	}
+
+	/**
+	 * Returns frontend CSS styles.
+	 *
+	 * @return string
+	 */
+	private function get_frontend_styles() {
+		return <<<'CSS'
+.certificados-validation {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	padding: 40px 10px;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+	width: 100%;
+}
+.certificados-validation-card {
+	background: #ffffff;
+	border-radius: 16px;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.02);
+	border: 1px solid rgba(0, 0, 0, 0.06);
+	width: 100%;
+	max-width: 500px;
+	padding: 35px;
+	text-align: center;
+	position: relative;
+	overflow: hidden;
+	box-sizing: border-box;
+	margin: 0 auto;
+}
+.certificados-validation-header {
+	margin-bottom: 24px;
+}
+.certificados-validation-icon {
+	width: 64px;
+	height: 64px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin: 0 auto 16px auto;
+	font-size: 28px;
+	line-height: 1;
+}
+.certificados-validation-icon.success {
+	background: #e6f7ed;
+	color: #00a854;
+	box-shadow: 0 0 0 8px #f0fbf5;
+	animation: pulse-success-cert 2s infinite;
+}
+.certificados-validation-icon.error {
+	background: #fdf2f2;
+	color: #de350b;
+	box-shadow: 0 0 0 8px #fef7f7;
+	animation: pulse-error-cert 2s infinite;
+}
+@keyframes pulse-success-cert {
+	0% { box-shadow: 0 0 0 0 rgba(0, 168, 84, 0.2); }
+	70% { box-shadow: 0 0 0 12px rgba(0, 168, 84, 0); }
+	100% { box-shadow: 0 0 0 0 rgba(0, 168, 84, 0); }
+}
+@keyframes pulse-error-cert {
+	0% { box-shadow: 0 0 0 0 rgba(222, 53, 11, 0.2); }
+	70% { box-shadow: 0 0 0 12px rgba(222, 53, 11, 0); }
+	100% { box-shadow: 0 0 0 0 rgba(222, 53, 11, 0); }
+}
+.certificados-validation-card h1 {
+	font-size: 22px;
+	font-weight: 700;
+	color: #1a1a1a;
+	margin: 0 0 8px 0;
+	line-height: 1.2;
+}
+.certificados-validation-card p.subtitle {
+	font-size: 13px;
+	color: #666666;
+	margin: 0;
+	line-height: 1.5;
+}
+.certificados-validation-details {
+	background: #f9f9fb;
+	border-radius: 12px;
+	padding: 20px;
+	margin: 24px 0;
+	text-align: left;
+	border: 1px solid rgba(0, 0, 0, 0.03);
+}
+.certificados-validation-details dl {
+	margin: 0;
+	padding: 0;
+}
+.certificados-validation-details dt {
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.8px;
+	color: #888888;
+	margin: 0 0 4px 0;
+	font-weight: 600;
+}
+.certificados-validation-details dd {
+	font-size: 15px;
+	font-weight: 600;
+	color: #2c3e50;
+	margin: 0 0 16px 0;
+	line-height: 1.4;
+}
+.certificados-validation-details dd:last-child {
+	margin-bottom: 0;
+}
+.certificados-validation-details code {
+	font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+	background: #eaeaea;
+	padding: 2px 5px;
+	border-radius: 4px;
+	font-size: 13px;
+	color: #333333;
+}
+.certificados-validation-qr {
+	margin-top: 24px;
+}
+.certificados-validation-qr img {
+	max-width: 140px;
+	height: auto;
+	padding: 8px;
+	background: #ffffff;
+	border: 1px solid #eaeaea;
+	border-radius: 8px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+	display: inline-block;
+}
+.certificados-validation-form {
+	margin-top: 24px;
+	text-align: left;
+}
+.certificados-validation-form label {
+	font-size: 13px;
+	font-weight: 600;
+	color: #444444;
+	display: block;
+	margin-bottom: 8px;
+}
+.certificados-validation-form-group {
+	display: flex;
+	gap: 10px;
+}
+.certificados-validation-form input[type="text"] {
+	flex: 1;
+	padding: 10px 14px;
+	border: 1.5px solid #dddddd;
+	border-radius: 8px;
+	font-size: 14px;
+	transition: border-color 0.2s ease, box-shadow 0.2s ease;
+	outline: none;
+	background: #fff;
+	color: #333;
+}
+.certificados-validation-form input[type="text"]:focus {
+	border-color: #feb20b;
+	box-shadow: 0 0 0 3px rgba(254, 178, 11, 0.15);
+}
+.certificados-validation-form button {
+	background: #feb20b;
+	color: #1f1f1f;
+	border: none;
+	padding: 10px 20px;
+	border-radius: 8px;
+	font-size: 14px;
+	font-weight: 700;
+	cursor: pointer;
+	transition: background-color 0.2s ease, transform 0.1s ease;
+}
+.certificados-validation-form button:hover {
+	background: #e5a00a;
+}
+.certificados-validation-form button:active {
+	transform: scale(0.98);
+}
+CSS;
 	}
 
 	/**
@@ -322,27 +514,49 @@ final class Certificados_Frontend {
 		ob_start();
 
 		if ( ! $certificate ) {
-			echo '<h1>' . esc_html__( 'Certificado no encontrado', 'certificados' ) . '</h1>';
-			echo '<p>' . esc_html__( 'El código ingresado no corresponde a un certificado emitido o completo.', 'certificados' ) . '</p>';
-			echo '<form method="get" class="certificados-validation-form">';
-			echo '<p><label for="certificados-validacion-codigo">' . esc_html__( 'Código de validación', 'certificados' ) . '</label></p>';
-			echo '<p><input type="text" id="certificados-validacion-codigo" name="certificado" value="' . esc_attr( $code ) . '"> <button type="submit">' . esc_html__( 'Validar', 'certificados' ) . '</button></p>';
-			echo '</form>';
+			echo '<div class="certificados-validation-card">';
+			echo '  <div class="certificados-validation-header">';
+			echo '    <div class="certificados-validation-icon error">✕</div>';
+			echo '    <h1>' . esc_html__( 'Certificado no encontrado', 'certificados' ) . '</h1>';
+			echo '    <p class="subtitle">' . esc_html__( 'El código ingresado no corresponde a un certificado válido o emitido.', 'certificados' ) . '</p>';
+			echo '  </div>';
+			echo '  <form method="get" class="certificados-validation-form">';
+			echo '    <label for="certificados-validacion-codigo">' . esc_html__( 'Código de validación', 'certificados' ) . '</label>';
+			echo '    <div class="certificados-validation-form-group">';
+			echo '      <input type="text" id="certificados-validacion-codigo" name="certificado" value="' . esc_attr( $code ) . '" placeholder="Ej. CERT-XXXXXX">';
+			echo '      <button type="submit">' . esc_html__( 'Validar', 'certificados' ) . '</button>';
+			echo '    </div>';
+			echo '  </form>';
+			echo '</div>';
 			return ob_get_clean();
 		}
 
 		$data   = Certificados_PDF::get_certificate_data( $certificate->ID );
 		$qr_url = self::get_qr_url( $data['verification_url'], 220 );
 
-		echo '<h1>' . esc_html__( 'Certificado válido', 'certificados' ) . '</h1>';
-		echo '<p>' . esc_html__( 'Este certificado fue emitido por el sitio y se encuentra registrado.', 'certificados' ) . '</p>';
-		echo '<dl>';
-		echo '<dt><strong>' . esc_html__( 'Participante', 'certificados' ) . '</strong></dt><dd>' . esc_html( $data['participant'] ) . '</dd>';
-		echo '<dt><strong>' . esc_html__( 'Curso o taller', 'certificados' ) . '</strong></dt><dd>' . esc_html( $data['course'] ) . '</dd>';
-		echo '<dt><strong>' . esc_html__( 'Fecha de emisión', 'certificados' ) . '</strong></dt><dd>' . esc_html( $data['issue_date'] ) . '</dd>';
-		echo '<dt><strong>' . esc_html__( 'Código', 'certificados' ) . '</strong></dt><dd><code>' . esc_html( $data['code'] ) . '</code></dd>';
-		echo '</dl>';
-		echo '<p><img src="' . esc_url( $qr_url ) . '" width="220" height="220" alt="' . esc_attr__( 'Código QR de validación', 'certificados' ) . '"></p>';
+		echo '<div class="certificados-validation-card">';
+		echo '  <div class="certificados-validation-header">';
+		echo '    <div class="certificados-validation-icon success">✓</div>';
+		echo '    <h1>' . esc_html__( 'Certificado válido', 'certificados' ) . '</h1>';
+		echo '    <p class="subtitle">' . esc_html__( 'Este certificado fue emitido por el sitio y se encuentra registrado oficialmente.', 'certificados' ) . '</p>';
+		echo '  </div>';
+		echo '  <div class="certificados-validation-details">';
+		echo '    <dl>';
+		echo '      <dt>' . esc_html__( 'Participante', 'certificados' ) . '</dt>';
+		echo '      <dd>' . esc_html( $data['participant'] ) . '</dd>';
+		echo '      <dt>' . esc_html__( 'Curso o taller', 'certificados' ) . '</dt>';
+		echo '      <dd>' . esc_html( $data['course'] ) . '</dd>';
+		echo '      <dt>' . esc_html__( 'Fecha de emisión', 'certificados' ) . '</dt>';
+		echo '      <dd>' . esc_html( $data['issue_date'] ) . '</dd>';
+		echo '      <dt>' . esc_html__( 'Código de validación', 'certificados' ) . '</dt>';
+		echo '      <dd><code>' . esc_html( $data['code'] ) . '</code></dd>';
+		echo '    </dl>';
+		echo '  </div>';
+		echo '  <div class="certificados-validation-qr">';
+		echo '    <img src="' . esc_url( $qr_url ) . '" width="140" height="140" alt="' . esc_attr__( 'Código QR de validación', 'certificados' ) . '">';
+		echo '    <p style="font-size: 11px; color: #888; margin-top: 8px;">' . esc_html__( 'Escanea para volver a validar', 'certificados' ) . '</p>';
+		echo '  </div>';
+		echo '</div>';
 
 		return ob_get_clean();
 	}
