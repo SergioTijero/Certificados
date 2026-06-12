@@ -75,12 +75,12 @@ final class Certificados_PDF {
 		$images = array();
 		$logo   = ! empty( $data['logo_url'] ) ? self::get_pdf_image_from_url( $data['logo_url'] ) : null;
 		if ( $logo ) {
-			$logo_box = self::fit_image_box( $logo['width'], $logo['height'], 140, 70 );
+			$logo_box = self::fit_image_box( $logo['width'], $logo['height'], 60, 60 );
 			$images[] = array(
 				'name'   => 'LOGO1',
 				'image'  => $logo,
 				'x'      => 396 - $logo_box['width'] / 2,
-				'y'      => 425 + ( 70 - $logo_box['height'] ) / 2,
+				'y'      => 445 + ( 60 - $logo_box['height'] ) / 2,
 				'width'  => $logo_box['width'],
 				'height' => $logo_box['height'],
 			);
@@ -93,8 +93,8 @@ final class Certificados_PDF {
 				'image'  => $qr_image,
 				'x'      => 600,
 				'y'      => 65,
-				'width'  => 90,
-				'height' => 90,
+				'width'  => 85,
+				'height' => 85,
 			);
 		}
 
@@ -103,8 +103,8 @@ final class Certificados_PDF {
 			'<< /Type /Catalog /Pages 2 0 R >>',
 			'<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
 			'', // Page object is filled after image object numbers are known.
-			'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
-			'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>',
+			'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
+			'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>',
 			'<< /Length ' . strlen( $content ) . " >>\nstream\n" . $content . "\nendstream",
 		);
 
@@ -152,7 +152,12 @@ final class Certificados_PDF {
 	 * @return string
 	 */
 	private static function escape_pdf_text( $text ) {
-		$text = remove_accents( wp_strip_all_tags( (string) $text ) );
+		$text = wp_strip_all_tags( (string) $text );
+		if ( function_exists( 'iconv' ) ) {
+			$text = @iconv( 'UTF-8', 'windows-1252//IGNORE', $text );
+		} else {
+			$text = remove_accents( $text );
+		}
 
 		return str_replace( array( '\\', '(', ')' ), array( '\\\\', '\\(', '\\)' ), $text );
 	}
@@ -166,9 +171,8 @@ final class Certificados_PDF {
 	 */
 	private static function build_page_content( array $data, array $images ) {
 		$content  = "q\n0.996 0.698 0.043 RG\n4 w\n36 36 720 540 re S\nQ\n";
-		$content .= "q\n0.996 0.698 0.043 rg\n36 516 720 60 re f\nQ\n";
-		$content .= "q\n0.15 0.15 0.15 RG\n1 w\n50 50 692 450 re S\nQ\n";
-		$content .= "q\n0.996 0.698 0.043 rg\n100 355 592 2 re f\nQ\n";
+		$content .= "q\n0.2 0.2 0.2 RG\n1 w\n48 48 696 516 re S\nQ\n";
+		$content .= "q\n0.996 0.698 0.043 rg\n276 375 240 2 re f\nQ\n";
 
 		foreach ( $images as $image ) {
 			$content .= sprintf(
@@ -181,21 +185,21 @@ final class Certificados_PDF {
 			);
 		}
 
-		$content .= self::pdf_wrapped_centered_text( 'F2', 32, 50, 375, 692, 'CERTIFICADO', 25, 36, 1 );
-		$content .= self::pdf_text( 'F1', 12, 72, 540, ! empty( $data['site_name'] ) ? $data['site_name'] : ' ' );
-		$content .= self::pdf_wrapped_centered_text( 'F1', 14, 50, 325, 692, 'Se certifica que:', 50, 20, 1 );
-		$content .= self::pdf_wrapped_centered_text( 'F2', 28, 50, 280, 692, $data['participant'], 45, 34, 2 );
-		$content .= self::pdf_wrapped_centered_text( 'F1', 14, 50, 230, 692, 'participo satisfactoriamente en:', 60, 20, 1 );
-		$content .= self::pdf_wrapped_centered_text( 'F2', 22, 50, 190, 692, $data['course'], 55, 26, 2 );
+		$content .= self::pdf_wrapped_centered_text( 'F1', 10, 48, 530, 696, strtoupper( $data['site_name'] ), 60, 12, 1 );
+		$content .= self::pdf_wrapped_centered_text( 'F2', 32, 48, 390, 696, 'CERTIFICADO', 25, 36, 1 );
+		$content .= self::pdf_wrapped_centered_text( 'F1', 12, 48, 345, 696, 'Se certifica que:', 50, 16, 1 );
+		$content .= self::pdf_wrapped_centered_text( 'F2', 28, 48, 295, 696, $data['participant'], 45, 34, 2 );
+		$content .= self::pdf_wrapped_centered_text( 'F1', 12, 48, 245, 696, 'participó satisfactoriamente en el:', 60, 16, 1 );
+		$content .= self::pdf_wrapped_centered_text( 'F2', 20, 48, 205, 696, $data['course'], 55, 24, 2 );
 
 		// Metadata columns (Left column)
 		$content .= self::pdf_text( 'F1', 11, 80, 135, 'Modalidad: ' . ucfirst( $data['mode'] ) );
-		$content .= self::pdf_text( 'F1', 11, 80, 115, 'Fecha de emision: ' . $data['issue_date'] );
-		$content .= self::pdf_text( 'F1', 11, 80, 95, 'Codigo de validacion: ' . $data['code'] );
-		$content .= self::pdf_wrapped_text( 'F1', 8, 80, 75, 'Verificacion: ' . $data['verification_url'], 90, 10, 2 );
+		$content .= self::pdf_text( 'F1', 11, 80, 117, 'Fecha de emisión: ' . $data['issue_date'] );
+		$content .= self::pdf_text( 'F1', 11, 80, 99, 'Código de validación: ' . $data['code'] );
+		$content .= self::pdf_wrapped_text( 'F1', 8, 80, 80, 'Verificación: ' . $data['verification_url'], 90, 10, 2 );
 
 		if ( self::has_pdf_image( $images, 'QR1' ) ) {
-			$content .= self::pdf_wrapped_centered_text( 'F1', 10, 575, 160, 140, 'Escanea para validar', 25, 12, 1 );
+			$content .= self::pdf_wrapped_centered_text( 'F1', 9, 575, 155, 135, 'Escanea para validar', 25, 12, 1 );
 		}
 
 		return $content;
