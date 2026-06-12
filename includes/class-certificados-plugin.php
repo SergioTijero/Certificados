@@ -45,6 +45,8 @@ final class Certificados_Plugin {
 		Certificados_Post_Types::instance();
 		Certificados_Admin::instance();
 		Certificados_Frontend::instance();
+
+		add_action( 'admin_init', array( __CLASS__, 'maybe_update_role_capabilities' ) );
 	}
 
 	/**
@@ -52,6 +54,8 @@ final class Certificados_Plugin {
 	 */
 	public static function activate() {
 		Certificados_Post_Types::register();
+		self::add_role_capabilities();
+		update_option( 'certificados_capabilities_version', CERTIFICADOS_VERSION );
 		Certificados_Frontend::add_rewrite_rules();
 		flush_rewrite_rules();
 	}
@@ -61,5 +65,33 @@ final class Certificados_Plugin {
 	 */
 	public static function deactivate() {
 		flush_rewrite_rules();
+	}
+
+	/**
+	 * Ensures capabilities are present after plugin updates.
+	 */
+	public static function maybe_update_role_capabilities() {
+		if ( CERTIFICADOS_VERSION === get_option( 'certificados_capabilities_version' ) ) {
+			return;
+		}
+
+		self::add_role_capabilities();
+		update_option( 'certificados_capabilities_version', CERTIFICADOS_VERSION );
+	}
+
+	/**
+	 * Gives admins and WooCommerce shop managers access to certificates.
+	 */
+	private static function add_role_capabilities() {
+		foreach ( array( 'administrator', 'shop_manager' ) as $role_name ) {
+			$role = get_role( $role_name );
+			if ( ! $role ) {
+				continue;
+			}
+
+			foreach ( Certificados_Post_Types::get_all_capabilities() as $capability ) {
+				$role->add_cap( $capability );
+			}
+		}
 	}
 }

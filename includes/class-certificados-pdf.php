@@ -81,19 +81,45 @@ final class Certificados_PDF {
 			'Verificacion: ' . $data['verification_url'],
 		);
 
+		$qr_image = self::get_qr_pdf_image( $data['verification_url'] );
 		$content = "BT\n/F1 24 Tf\n72 760 Td\n(CERTIFICADO) Tj\n";
 		$content .= "/F1 12 Tf\n0 -50 Td\n";
 		foreach ( array_slice( $lines, 2 ) as $line ) {
 			$content .= '(' . self::escape_pdf_text( $line ) . ") Tj\n0 -24 Td\n";
 		}
 		$content .= 'ET';
+		if ( $qr_image ) {
+			$content .= "\nq\n130 0 0 130 410 120 cm\n/QR1 Do\nQ\n";
+			$content .= "BT\n/F1 10 Tf\n410 100 Td\n(Escanea para validar) Tj\nET";
+		}
 
 		$objects   = array();
-		$objects[] = '<< /Type /Catalog /Pages 2 0 R >>';
-		$objects[] = '<< /Type /Pages /Kids [3 0 R] /Count 1 >>';
-		$objects[] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>';
-		$objects[] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>';
-		$objects[] = '<< /Length ' . strlen( $content ) . " >>\nstream\n" . $content . "\nendstream";
+		$objects[] = '<< /Type /Catalog /Pages 2 0 R >>'; // 1.
+		$objects[] = '<< /Type /Pages /Kids [3 0 R] /Count 1 >>'; // 2.
+		$resources = '<< /Font << /F1 4 0 R >>';
+		if ( $qr_image ) {
+			$resources .= ' /XObject << /QR1 6 0 R >>';
+		}
+		$resources .= ' >>';
+		$objects[] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources ' . $resources . ' /Contents 5 0 R >>'; // 3.
+		$objects[] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'; // 4.
+		$objects[] = '<< /Length ' . strlen( $content ) . " >>\nstream\n" . $content . "\nendstream"; // 5.
+		if ( $qr_image ) {
+			$objects[] = sprintf(
+				"<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /Length %d /SMask 7 0 R >>\nstream\n%s\nendstream",
+				$qr_image['width'],
+				$qr_image['height'],
+				strlen( $qr_image['rgb'] ),
+				$qr_image['rgb']
+			); // 6.
+			$objects[] = sprintf(
+				"<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode /Length %d >>\nstream\n%s\nendstream",
+				$qr_image['width'],
+				$qr_image['height'],
+				strlen( $qr_image['alpha'] ),
+				$qr_image['alpha']
+			); // 7.
+		}
 
 		$pdf     = "%PDF-1.4\n";
 		$offsets = array( 0 );
@@ -124,5 +150,164 @@ final class Certificados_PDF {
 		$text = remove_accents( wp_strip_all_tags( (string) $text ) );
 
 		return str_replace( array( '\\', '(', ')' ), array( '\\\\', '\\(', '\\)' ), $text );
+	}
+
+	/**
+	 * Fetches and converts a QR PNG into PDF image streams.
+	 *
+	 * @param string $verification_url Public verification URL.
+	 * @return array|null
+	 */
+	private static function get_qr_pdf_image( $verification_url ) {
+		$response = wp_remote_get(
+			Certificados_Frontend::get_qr_url( $verification_url, 180 ),
+			array(
+				'timeout' => 8,
+			)
+		);
+
+		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
+			return null;
+		}
+
+		return self::png_rgba_to_pdf_streams( wp_remote_retrieve_body( $response ) );
+	}
+
+	/**
+	 * Converts a non-interlaced 8-bit RGBA PNG to compressed PDF image streams.
+	 *
+	 * @param string $png PNG bytes.
+	 * @return array|null
+	 */
+	private static function png_rgba_to_pdf_streams( $png ) {
+		if ( substr( $png, 0, 8 ) !== "\x89PNG\r\n\x1a\n" ) {
+			return null;
+		}
+
+		$offset = 8;
+		$width  = 0;
+		$height = 0;
+		$idat   = '';
+
+		while ( $offset + 8 <= strlen( $png ) ) {
+			$length = unpack( 'N', substr( $png, $offset, 4 ) )[1];
+			$type   = substr( $png, $offset + 4, 4 );
+			$data   = substr( $png, $offset + 8, $length );
+			$offset = $offset + 12 + $length;
+
+			if ( 'IHDR' === $type ) {
+				$header = unpack( 'Nwidth/Nheight/Cdepth/Ccolor/Ccompression/Cfilter/Cinterlace', $data );
+				if ( 8 !== $header['depth'] || 6 !== $header['color'] || 0 !== $header['interlace'] ) {
+					return null;
+				}
+				$width  = (int) $header['width'];
+				$height = (int) $header['height'];
+			} elseif ( 'IDAT' === $type ) {
+				$idat .= $data;
+			} elseif ( 'IEND' === $type ) {
+				break;
+			}
+		}
+
+		if ( ! $width || ! $height || ! $idat ) {
+			return null;
+		}
+
+		$raw = gzuncompress( $idat );
+		if ( false === $raw ) {
+			return null;
+		}
+
+		$bytes_per_pixel = 4;
+		$stride          = $width * $bytes_per_pixel;
+		$position        = 0;
+		$previous        = array_fill( 0, $stride, 0 );
+		$rgb             = '';
+		$alpha           = '';
+
+		for ( $row = 0; $row < $height; $row++ ) {
+			$filter   = ord( $raw[ $position ] );
+			$position++;
+			$scanline = array_values( unpack( 'C*', substr( $raw, $position, $stride ) ) );
+			$position += $stride;
+			$current  = self::unfilter_png_scanline( $scanline, $previous, $bytes_per_pixel, $filter );
+
+			for ( $i = 0; $i < $stride; $i += 4 ) {
+				$rgb   .= chr( $current[ $i ] ) . chr( $current[ $i + 1 ] ) . chr( $current[ $i + 2 ] );
+				$alpha .= chr( $current[ $i + 3 ] );
+			}
+
+			$previous = $current;
+		}
+
+		return array(
+			'width'  => $width,
+			'height' => $height,
+			'rgb'    => gzcompress( $rgb ),
+			'alpha'  => gzcompress( $alpha ),
+		);
+	}
+
+	/**
+	 * Applies PNG scanline filters.
+	 *
+	 * @param array $scanline Current filtered scanline.
+	 * @param array $previous Previous unfiltered scanline.
+	 * @param int   $bpp Bytes per pixel.
+	 * @param int   $filter Filter type.
+	 * @return array
+	 */
+	private static function unfilter_png_scanline( array $scanline, array $previous, $bpp, $filter ) {
+		$current = array();
+		$count   = count( $scanline );
+
+		for ( $i = 0; $i < $count; $i++ ) {
+			$left  = $i >= $bpp ? $current[ $i - $bpp ] : 0;
+			$up    = $previous[ $i ];
+			$upper = $i >= $bpp ? $previous[ $i - $bpp ] : 0;
+
+			switch ( $filter ) {
+				case 1:
+					$value = $scanline[ $i ] + $left;
+					break;
+				case 2:
+					$value = $scanline[ $i ] + $up;
+					break;
+				case 3:
+					$value = $scanline[ $i ] + floor( ( $left + $up ) / 2 );
+					break;
+				case 4:
+					$value = $scanline[ $i ] + self::paeth_predictor( $left, $up, $upper );
+					break;
+				default:
+					$value = $scanline[ $i ];
+					break;
+			}
+
+			$current[ $i ] = $value & 0xff;
+		}
+
+		return $current;
+	}
+
+	/**
+	 * PNG Paeth predictor.
+	 *
+	 * @param int $left Left value.
+	 * @param int $up Upper value.
+	 * @param int $upper_left Upper-left value.
+	 * @return int
+	 */
+	private static function paeth_predictor( $left, $up, $upper_left ) {
+		$p  = $left + $up - $upper_left;
+		$pa = abs( $p - $left );
+		$pb = abs( $p - $up );
+		$pc = abs( $p - $upper_left );
+
+		if ( $pa <= $pb && $pa <= $pc ) {
+			return $left;
+		}
+
+		return $pb <= $pc ? $up : $upper_left;
 	}
 }

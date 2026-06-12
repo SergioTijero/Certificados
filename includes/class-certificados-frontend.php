@@ -157,6 +157,7 @@ final class Certificados_Frontend {
 		echo '<th>' . esc_html__( 'Curso', 'certificados' ) . '</th>';
 		echo '<th>' . esc_html__( 'Fecha', 'certificados' ) . '</th>';
 		echo '<th>' . esc_html__( 'Código', 'certificados' ) . '</th>';
+		echo '<th>' . esc_html__( 'QR', 'certificados' ) . '</th>';
 		echo '<th>' . esc_html__( 'Acciones', 'certificados' ) . '</th>';
 		echo '</tr></thead><tbody>';
 
@@ -176,6 +177,7 @@ final class Certificados_Frontend {
 			echo '<td>' . esc_html( $data['course'] ) . '</td>';
 			echo '<td>' . esc_html( $data['issue_date'] ) . '</td>';
 			echo '<td><code>' . esc_html( $data['code'] ) . '</code></td>';
+			echo '<td><img src="' . esc_url( self::get_qr_url( $data['verification_url'], 96 ) ) . '" width="96" height="96" alt="' . esc_attr__( 'Código QR de validación', 'certificados' ) . '"></td>';
 			echo '<td>';
 			echo '<a class="button" href="' . esc_url( $download_url ) . '">' . esc_html__( 'Descargar PDF', 'certificados' ) . '</a> ';
 			echo '<a class="button" href="' . esc_url( $data['verification_url'] ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Validar', 'certificados' ) . '</a>';
@@ -214,6 +216,24 @@ final class Certificados_Frontend {
 	 */
 	public static function get_verification_url( $code ) {
 		return home_url( user_trailingslashit( 'validar-certificado/' . rawurlencode( $code ) ) );
+	}
+
+	/**
+	 * Returns a QR image URL for a verification link.
+	 *
+	 * @param string $verification_url Public verification URL.
+	 * @param int    $size Image size in pixels.
+	 * @return string
+	 */
+	public static function get_qr_url( $verification_url, $size = 220 ) {
+		return add_query_arg(
+			array(
+				'size'   => absint( $size ),
+				'format' => 'png',
+				'text'   => $verification_url,
+			),
+			'https://quickchart.io/qr'
+		);
 	}
 
 	/**
@@ -257,7 +277,7 @@ final class Certificados_Frontend {
 		}
 
 		$data   = Certificados_PDF::get_certificate_data( $certificate->ID );
-		$qr_url = 'https://quickchart.io/qr?size=220&text=' . rawurlencode( $data['verification_url'] );
+		$qr_url = self::get_qr_url( $data['verification_url'], 220 );
 
 		echo '<h1>' . esc_html__( 'Certificado válido', 'certificados' ) . '</h1>';
 		echo '<p>' . esc_html__( 'Este certificado fue emitido por el sitio y se encuentra registrado.', 'certificados' ) . '</p>';

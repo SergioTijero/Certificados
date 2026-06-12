@@ -11,6 +11,7 @@ Primera versión funcional en desarrollo. Incluye:
 - Código único de validación por certificado.
 - Descarga de PDF desde “Mi cuenta” de WooCommerce.
 - Ruta pública de validación con QR.
+- Capacidades para administradores y gestores de tienda.
 
 ## Instalación local
 
@@ -33,6 +34,8 @@ certificados.php
 4. Publica el certificado.
 5. El cliente verá el certificado en **Mi cuenta > Certificados**.
 6. Desde esa vista podrá descargar el PDF o abrir la validación pública.
+
+El PDF incluye los datos del participante, el curso, la fecha, el código de validación y la URL pública. Cuando el sitio puede consultar QuickChart, también incrusta el QR dentro del PDF.
 
 ## Ruta de validación
 

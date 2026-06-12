@@ -156,12 +156,16 @@ final class Certificados_Admin {
 			<input type="date" id="certificados_issue_date" name="certificados_issue_date" value="<?php echo esc_attr( $issue_date ); ?>">
 		</p>
 		<?php if ( $code ) : ?>
+			<?php $verification_url = Certificados_Frontend::get_verification_url( $code ); ?>
 			<p>
 				<strong><?php esc_html_e( 'Código de validación:', 'certificados' ); ?></strong>
 				<code><?php echo esc_html( $code ); ?></code>
 			</p>
 			<p>
-				<a href="<?php echo esc_url( Certificados_Frontend::get_verification_url( $code ) ); ?>" target="_blank" rel="noopener noreferrer">
+				<img src="<?php echo esc_url( Certificados_Frontend::get_qr_url( $verification_url, 160 ) ); ?>" width="160" height="160" alt="<?php esc_attr_e( 'Código QR de validación', 'certificados' ); ?>">
+			</p>
+			<p>
+				<a href="<?php echo esc_url( $verification_url ); ?>" target="_blank" rel="noopener noreferrer">
 					<?php esc_html_e( 'Ver página pública de validación', 'certificados' ); ?>
 				</a>
 			</p>
