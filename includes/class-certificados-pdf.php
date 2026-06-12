@@ -75,12 +75,12 @@ final class Certificados_PDF {
 		$images = array();
 		$logo   = ! empty( $data['logo_url'] ) ? self::get_pdf_image_from_url( $data['logo_url'] ) : null;
 		if ( $logo ) {
-			$logo_box = self::fit_image_box( $logo['width'], $logo['height'], 120, 58 );
+			$logo_box = self::fit_image_box( $logo['width'], $logo['height'], 140, 70 );
 			$images[] = array(
 				'name'   => 'LOGO1',
 				'image'  => $logo,
-				'x'      => 246 + ( 120 - $logo_box['width'] ) / 2,
-				'y'      => 696,
+				'x'      => 396 - $logo_box['width'] / 2,
+				'y'      => 425 + ( 70 - $logo_box['height'] ) / 2,
 				'width'  => $logo_box['width'],
 				'height' => $logo_box['height'],
 			);
@@ -91,10 +91,10 @@ final class Certificados_PDF {
 			$images[] = array(
 				'name'   => 'QR1',
 				'image'  => $qr_image,
-				'x'      => 410,
-				'y'      => 118,
-				'width'  => 128,
-				'height' => 128,
+				'x'      => 600,
+				'y'      => 65,
+				'width'  => 90,
+				'height' => 90,
 			);
 		}
 
@@ -124,7 +124,7 @@ final class Certificados_PDF {
 			$resources .= ' /XObject <<' . $xobjects . ' >>';
 		}
 		$resources .= ' >>';
-		$objects[2] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources ' . $resources . ' /Contents 6 0 R >>';
+		$objects[2] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 792 612] /Resources ' . $resources . ' /Contents 6 0 R >>';
 
 		$pdf     = "%PDF-1.4\n";
 		$offsets = array( 0 );
@@ -165,10 +165,10 @@ final class Certificados_PDF {
 	 * @return string
 	 */
 	private static function build_page_content( array $data, array $images ) {
-		$content  = "q\n0.996 0.698 0.043 RG\n4 w\n36 36 540 720 re S\nQ\n";
-		$content .= "q\n0.996 0.698 0.043 rg\n36 700 540 56 re f\nQ\n";
-		$content .= "q\n0.15 0.15 0.15 RG\n1 w\n50 54 512 628 re S\nQ\n";
-		$content .= "q\n0.996 0.698 0.043 rg\n72 608 468 3 re f\nQ\n";
+		$content  = "q\n0.996 0.698 0.043 RG\n4 w\n36 36 720 540 re S\nQ\n";
+		$content .= "q\n0.996 0.698 0.043 rg\n36 516 720 60 re f\nQ\n";
+		$content .= "q\n0.15 0.15 0.15 RG\n1 w\n50 50 692 450 re S\nQ\n";
+		$content .= "q\n0.996 0.698 0.043 rg\n100 355 592 2 re f\nQ\n";
 
 		foreach ( $images as $image ) {
 			$content .= sprintf(
@@ -181,18 +181,21 @@ final class Certificados_PDF {
 			);
 		}
 
-		$content .= self::pdf_text( 'F2', 28, 208, 650, 'CERTIFICADO' );
-		$content .= self::pdf_text( 'F1', 12, 72, 724, ! empty( $data['site_name'] ) ? $data['site_name'] : ' ' );
-		$content .= self::pdf_text( 'F1', 14, 236, 580, 'Se certifica que:' );
-		$content .= self::pdf_wrapped_centered_text( 'F2', 26, 72, 540, 468, $data['participant'], 35, 30, 2 );
-		$content .= self::pdf_text( 'F1', 14, 198, 500, 'participo satisfactoriamente en:' );
-		$content .= self::pdf_wrapped_centered_text( 'F2', 18, 84, 466, 444, $data['course'], 48, 24, 3 );
-		$content .= self::pdf_text( 'F1', 12, 104, 406, 'Modalidad: ' . ucfirst( $data['mode'] ) );
-		$content .= self::pdf_text( 'F1', 12, 104, 382, 'Fecha de emision: ' . $data['issue_date'] );
-		$content .= self::pdf_text( 'F1', 12, 104, 358, 'Codigo de validacion: ' . $data['code'] );
-		$content .= self::pdf_wrapped_text( 'F1', 9, 104, 332, 'Verificacion: ' . $data['verification_url'], 92, 12, 2 );
+		$content .= self::pdf_wrapped_centered_text( 'F2', 32, 50, 375, 692, 'CERTIFICADO', 25, 36, 1 );
+		$content .= self::pdf_text( 'F1', 12, 72, 540, ! empty( $data['site_name'] ) ? $data['site_name'] : ' ' );
+		$content .= self::pdf_wrapped_centered_text( 'F1', 14, 50, 325, 692, 'Se certifica que:', 50, 20, 1 );
+		$content .= self::pdf_wrapped_centered_text( 'F2', 28, 50, 280, 692, $data['participant'], 45, 34, 2 );
+		$content .= self::pdf_wrapped_centered_text( 'F1', 14, 50, 230, 692, 'participo satisfactoriamente en:', 60, 20, 1 );
+		$content .= self::pdf_wrapped_centered_text( 'F2', 22, 50, 190, 692, $data['course'], 55, 26, 2 );
+
+		// Metadata columns (Left column)
+		$content .= self::pdf_text( 'F1', 11, 80, 135, 'Modalidad: ' . ucfirst( $data['mode'] ) );
+		$content .= self::pdf_text( 'F1', 11, 80, 115, 'Fecha de emision: ' . $data['issue_date'] );
+		$content .= self::pdf_text( 'F1', 11, 80, 95, 'Codigo de validacion: ' . $data['code'] );
+		$content .= self::pdf_wrapped_text( 'F1', 8, 80, 75, 'Verificacion: ' . $data['verification_url'], 90, 10, 2 );
+
 		if ( self::has_pdf_image( $images, 'QR1' ) ) {
-			$content .= self::pdf_text( 'F1', 10, 408, 96, 'Escanea para validar' );
+			$content .= self::pdf_wrapped_centered_text( 'F1', 10, 575, 160, 140, 'Escanea para validar', 25, 12, 1 );
 		}
 
 		return $content;
@@ -360,6 +363,8 @@ final class Certificados_PDF {
 	 * @return array|null
 	 */
 	private static function image_to_pdf_streams( $bytes ) {
+		$bytes = self::convert_to_compatible_png( $bytes );
+
 		if ( substr( $bytes, 0, 8 ) === "\x89PNG\r\n\x1a\n" ) {
 			return self::png_to_pdf_streams( $bytes );
 		}
@@ -369,6 +374,74 @@ final class Certificados_PDF {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Converts an image to a compatible PNG format (truecolor, non-interlaced) if needed.
+	 *
+	 * @param string $bytes Image bytes.
+	 * @return string Image bytes (original or converted).
+	 */
+	private static function convert_to_compatible_png( $bytes ) {
+		if ( substr( $bytes, 0, 8 ) === "\x89PNG\r\n\x1a\n" ) {
+			$offset = 8;
+			while ( $offset + 8 <= strlen( $bytes ) ) {
+				$length = unpack( 'N', substr( $bytes, $offset, 4 ) )[1];
+				$type   = substr( $bytes, $offset + 4, 4 );
+				$data   = substr( $bytes, $offset + 8, $length );
+				if ( 'IHDR' === $type ) {
+					$header    = unpack( 'Nwidth/Nheight/Cdepth/Ccolor/Ccompression/Cfilter/Cinterlace', $data );
+					$depth     = (int) $header['depth'];
+					$color     = (int) $header['color'];
+					$interlace = (int) $header['interlace'];
+
+					// If it is 8-bit depth, RGB or RGBA, and non-interlaced, it is compatible
+					if ( 8 === $depth && in_array( $color, array( 2, 6 ), true ) && 0 === $interlace ) {
+						return $bytes;
+					}
+					break;
+				}
+				$offset = $offset + 12 + $length;
+			}
+		}
+
+		if ( substr( $bytes, 0, 2 ) === "\xff\xd8" ) {
+			return $bytes;
+		}
+
+		if ( function_exists( 'imagecreatefromstring' ) && function_exists( 'imagecreatetruecolor' ) ) {
+			$im = @imagecreatefromstring( $bytes );
+			if ( $im ) {
+				$width     = imagesx( $im );
+				$height    = imagesy( $im );
+				$truecolor = imagecreatetruecolor( $width, $height );
+				if ( $truecolor ) {
+					imagealphablending( $truecolor, false );
+					imagesavealpha( $truecolor, true );
+
+					// Fill with transparent background
+					$transparent = imagecolorallocatealpha( $truecolor, 0, 0, 0, 127 );
+					imagefill( $truecolor, 0, 0, $transparent );
+
+					imagecopy( $truecolor, $im, 0, 0, 0, 0, $width, $height );
+
+					ob_start();
+					imagepng( $truecolor );
+					$converted_bytes = ob_get_clean();
+
+					imagedestroy( $truecolor );
+					imagedestroy( $im );
+
+					if ( $converted_bytes ) {
+						return $converted_bytes;
+					}
+				} else {
+					imagedestroy( $im );
+				}
+			}
+		}
+
+		return $bytes;
 	}
 
 	/**
@@ -532,18 +605,23 @@ final class Certificados_PDF {
 	 * @return string
 	 */
 	private static function get_site_logo_url() {
-		if ( ! function_exists( 'get_theme_mod' ) || ! function_exists( 'wp_get_attachment_image_src' ) ) {
-			return '';
+		$logo_url = '';
+
+		if ( function_exists( 'get_theme_mod' ) && function_exists( 'wp_get_attachment_image_src' ) ) {
+			$logo_id = absint( get_theme_mod( 'custom_logo' ) );
+			if ( $logo_id ) {
+				$logo = wp_get_attachment_image_src( $logo_id, 'full' );
+				if ( is_array( $logo ) && ! empty( $logo[0] ) ) {
+					$logo_url = $logo[0];
+				}
+			}
 		}
 
-		$logo_id = absint( get_theme_mod( 'custom_logo' ) );
-		if ( ! $logo_id ) {
-			return '';
+		if ( empty( $logo_url ) ) {
+			$logo_url = 'https://thehomebrewerperu.com/wp-content/uploads/2019/12/Logo_thbp.png';
 		}
 
-		$logo = wp_get_attachment_image_src( $logo_id, 'full' );
-
-		return is_array( $logo ) && ! empty( $logo[0] ) ? $logo[0] : '';
+		return $logo_url;
 	}
 
 	/**
