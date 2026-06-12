@@ -26,6 +26,12 @@ Archivo principal del plugin:
 certificados.php
 ```
 
+Verificación estática del flujo esencial:
+
+```bash
+php tools/verify-objective.php
+```
+
 ## Flujo básico
 
 1. En el administrador de WordPress, entra a **Cursos y talleres** y crea un curso.

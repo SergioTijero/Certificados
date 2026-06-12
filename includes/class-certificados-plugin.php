@@ -71,7 +71,10 @@ final class Certificados_Plugin {
 	 * Ensures capabilities are present after plugin updates.
 	 */
 	public static function maybe_update_role_capabilities() {
-		if ( CERTIFICADOS_VERSION === get_option( 'certificados_capabilities_version' ) ) {
+		if (
+			CERTIFICADOS_VERSION === get_option( 'certificados_capabilities_version' )
+			&& self::roles_have_capabilities()
+		) {
 			return;
 		}
 
@@ -93,5 +96,27 @@ final class Certificados_Plugin {
 				$role->add_cap( $capability );
 			}
 		}
+	}
+
+	/**
+	 * Checks whether available target roles already have plugin capabilities.
+	 *
+	 * @return bool
+	 */
+	private static function roles_have_capabilities() {
+		foreach ( array( 'administrator', 'shop_manager' ) as $role_name ) {
+			$role = get_role( $role_name );
+			if ( ! $role ) {
+				continue;
+			}
+
+			foreach ( Certificados_Post_Types::get_all_capabilities() as $capability ) {
+				if ( ! $role->has_cap( $capability ) ) {
+					return false;
+				}
+			}
+		}
+
+		return true;
 	}
 }

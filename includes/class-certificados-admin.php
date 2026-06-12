@@ -121,12 +121,7 @@ final class Certificados_Admin {
 				'order'          => 'ASC',
 			)
 		);
-		$users      = get_users(
-			array(
-				'fields'  => array( 'ID', 'display_name', 'user_email' ),
-				'orderby' => 'display_name',
-			)
-		);
+		$users      = $this->get_assignable_customers( $user_id );
 
 		?>
 		<p>
@@ -202,6 +197,14 @@ final class Certificados_Admin {
 		$user_id    = isset( $_POST['certificados_user_id'] ) ? absint( wp_unslash( $_POST['certificados_user_id'] ) ) : 0;
 		$issue_date = $this->sanitize_date( 'certificados_issue_date' );
 
+		if ( Certificados_Post_Types::COURSE_POST_TYPE !== get_post_type( $course_id ) ) {
+			$course_id = 0;
+		}
+
+		if ( ! get_userdata( $user_id ) ) {
+			$user_id = 0;
+		}
+
 		update_post_meta( $post_id, '_certificados_course_id', $course_id );
 		update_post_meta( $post_id, '_certificados_user_id', $user_id );
 		update_post_meta( $post_id, '_certificados_issue_date', $issue_date );
@@ -269,6 +272,51 @@ final class Certificados_Admin {
 		$value = isset( $_POST[ $key ] ) ? sanitize_key( wp_unslash( $_POST[ $key ] ) ) : $fallback;
 
 		return in_array( $value, $allowed, true ) ? $value : $fallback;
+	}
+
+	/**
+	 * Returns WooCommerce customers for certificate assignment.
+	 *
+	 * @param int $selected_user_id Current assigned user ID.
+	 * @return WP_User[]
+	 */
+	private function get_assignable_customers( $selected_user_id ) {
+		$args = array(
+			'fields'  => array( 'ID', 'display_name', 'user_email' ),
+			'orderby' => 'display_name',
+		);
+
+		if ( get_role( 'customer' ) ) {
+			$args['role__in'] = array( 'customer' );
+		}
+
+		$users = get_users( $args );
+
+		if ( $selected_user_id && ! $this->user_exists_in_list( $selected_user_id, $users ) ) {
+			$selected_user = get_userdata( $selected_user_id );
+			if ( $selected_user ) {
+				$users[] = $selected_user;
+			}
+		}
+
+		return $users;
+	}
+
+	/**
+	 * Checks if a user ID exists in a user list.
+	 *
+	 * @param int   $user_id User ID.
+	 * @param array $users User list.
+	 * @return bool
+	 */
+	private function user_exists_in_list( $user_id, array $users ) {
+		foreach ( $users as $user ) {
+			if ( absint( $user->ID ) === absint( $user_id ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
