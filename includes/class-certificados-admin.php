@@ -163,12 +163,15 @@ final class Certificados_Admin {
 		$course_id  = absint( get_post_meta( $post->ID, '_certificados_course_id', true ) );
 		$user_id    = absint( get_post_meta( $post->ID, '_certificados_user_id', true ) );
 		$issue_date = get_post_meta( $post->ID, '_certificados_issue_date', true );
+		if ( ! $issue_date ) {
+			$issue_date = current_time( 'Y-m-d' );
+		}
 		$code       = get_post_meta( $post->ID, '_certificados_code', true );
 		$courses    = get_posts(
 			array(
 				'post_type'      => Certificados_Post_Types::COURSE_POST_TYPE,
 				'post_status'    => 'publish',
-				'posts_per_page' => 100,
+				'posts_per_page' => -1,
 				'orderby'        => 'title',
 				'order'          => 'ASC',
 			)
