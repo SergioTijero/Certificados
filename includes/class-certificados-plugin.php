@@ -47,6 +47,7 @@ final class Certificados_Plugin {
 		Certificados_Frontend::instance();
 
 		add_action( 'admin_init', array( __CLASS__, 'maybe_update_role_capabilities' ) );
+		add_action( 'admin_init', array( __CLASS__, 'maybe_flush_rewrite_rules' ) );
 	}
 
 	/**
@@ -58,6 +59,7 @@ final class Certificados_Plugin {
 		update_option( 'certificados_capabilities_version', CERTIFICADOS_VERSION );
 		Certificados_Frontend::add_rewrite_rules();
 		flush_rewrite_rules();
+		update_option( 'certificados_rewrite_version', CERTIFICADOS_VERSION );
 	}
 
 	/**
@@ -80,6 +82,19 @@ final class Certificados_Plugin {
 
 		self::add_role_capabilities();
 		update_option( 'certificados_capabilities_version', CERTIFICADOS_VERSION );
+	}
+
+	/**
+	 * Refreshes rewrite rules once per plugin version.
+	 */
+	public static function maybe_flush_rewrite_rules() {
+		if ( CERTIFICADOS_VERSION === get_option( 'certificados_rewrite_version' ) ) {
+			return;
+		}
+
+		Certificados_Frontend::add_rewrite_rules();
+		flush_rewrite_rules();
+		update_option( 'certificados_rewrite_version', CERTIFICADOS_VERSION );
 	}
 
 	/**

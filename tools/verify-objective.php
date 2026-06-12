@@ -16,6 +16,7 @@ $checks = array(
 	'certificate post type'         => array( 'includes/class-certificados-post-types.php', "const CERTIFICATE_POST_TYPE = 'cert_certificate';" ),
 	'custom role capabilities'      => array( 'includes/class-certificados-post-types.php', 'get_all_capabilities' ),
 	'shop manager capability sync'  => array( 'includes/class-certificados-plugin.php', "'shop_manager'" ),
+	'rewrite version sync'          => array( 'includes/class-certificados-plugin.php', 'certificados_rewrite_version' ),
 	'course admin fields'           => array( 'includes/class-certificados-admin.php', 'render_course_box' ),
 	'certificate assignment fields' => array( 'includes/class-certificados-admin.php', 'certificados_user_id' ),
 	'certificate admin columns'     => array( 'includes/class-certificados-admin.php', 'certificate_columns' ),

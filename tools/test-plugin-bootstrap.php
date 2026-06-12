@@ -21,6 +21,7 @@ $GLOBALS['certificados_test'] = array(
 	'rewrite_rules'      => array(),
 	'activation_hooks'   => array(),
 	'deactivation_hooks' => array(),
+	'flushes'            => 0,
 	'options'            => array(),
 	'roles'              => array(),
 );
@@ -99,7 +100,9 @@ function add_rewrite_rule( $regex, $query, $position ) {
 	);
 }
 
-function flush_rewrite_rules() {}
+function flush_rewrite_rules() {
+	$GLOBALS['certificados_test']['flushes']++;
+}
 
 function get_role( $role_name ) {
 	return isset( $GLOBALS['certificados_test']['roles'][ $role_name ] ) ? $GLOBALS['certificados_test']['roles'][ $role_name ] : null;
@@ -144,6 +147,13 @@ certificados_test_assert( isset( $state['filters']['manage_cert_certificate_post
 certificados_test_assert( isset( $state['actions']['manage_cert_certificate_posts_custom_column'] ), 'certificate admin custom column renderer is registered' );
 certificados_test_assert( isset( $state['actions']['admin_post_certificados_download_pdf'] ), 'admin PDF download handler is registered' );
 certificados_test_assert( get_option( 'certificados_capabilities_version' ) === CERTIFICADOS_VERSION, 'capabilities version is stored' );
+certificados_test_assert( get_option( 'certificados_rewrite_version' ) === CERTIFICADOS_VERSION, 'rewrite version is stored on activation' );
+certificados_test_assert( 1 === $state['flushes'], 'rewrite rules are flushed on activation' );
+
+$GLOBALS['certificados_test']['options']['certificados_rewrite_version'] = '0.0.0';
+Certificados_Plugin::maybe_flush_rewrite_rules();
+certificados_test_assert( get_option( 'certificados_rewrite_version' ) === CERTIFICADOS_VERSION, 'rewrite version is updated after plugin update' );
+certificados_test_assert( 2 === $GLOBALS['certificados_test']['flushes'], 'rewrite rules are flushed after plugin update' );
 
 foreach ( array( 'administrator', 'shop_manager' ) as $role_name ) {
 	$role = get_role( $role_name );
