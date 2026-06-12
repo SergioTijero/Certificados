@@ -18,6 +18,7 @@ $checks = array(
 	'shop manager capability sync'  => array( 'includes/class-certificados-plugin.php', "'shop_manager'" ),
 	'course admin fields'           => array( 'includes/class-certificados-admin.php', 'render_course_box' ),
 	'certificate assignment fields' => array( 'includes/class-certificados-admin.php', 'certificados_user_id' ),
+	'certificate admin columns'     => array( 'includes/class-certificados-admin.php', 'certificate_columns' ),
 	'customer selector preference'  => array( 'includes/class-certificados-admin.php', 'get_assignable_customers' ),
 	'unique validation code'        => array( 'includes/class-certificados-admin.php', 'generate_unique_code' ),
 	'woocommerce account endpoint'  => array( 'includes/class-certificados-frontend.php', "const ACCOUNT_ENDPOINT = 'certificados';" ),

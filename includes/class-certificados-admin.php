@@ -44,6 +44,8 @@ final class Certificados_Admin {
 		add_action( 'save_post_' . Certificados_Post_Types::COURSE_POST_TYPE, array( $this, 'save_course' ) );
 		add_action( 'save_post_' . Certificados_Post_Types::CERTIFICATE_POST_TYPE, array( $this, 'save_certificate' ) );
 		add_action( 'admin_notices', array( $this, 'woocommerce_notice' ) );
+		add_filter( 'manage_' . Certificados_Post_Types::CERTIFICATE_POST_TYPE . '_posts_columns', array( $this, 'certificate_columns' ) );
+		add_action( 'manage_' . Certificados_Post_Types::CERTIFICATE_POST_TYPE . '_posts_custom_column', array( $this, 'render_certificate_column' ), 10, 2 );
 	}
 
 	/**
@@ -228,6 +230,67 @@ final class Certificados_Admin {
 		}
 
 		echo '<div class="notice notice-warning"><p>' . esc_html__( 'Certificados funciona mejor con WooCommerce activo para mostrar certificados en Mi cuenta.', 'certificados' ) . '</p></div>';
+	}
+
+	/**
+	 * Adds useful columns to the certificate list.
+	 *
+	 * @param array $columns Existing columns.
+	 * @return array
+	 */
+	public function certificate_columns( $columns ) {
+		$date = isset( $columns['date'] ) ? $columns['date'] : __( 'Fecha', 'certificados' );
+		unset( $columns['date'] );
+
+		$columns['certificados_course']     = __( 'Curso', 'certificados' );
+		$columns['certificados_customer']   = __( 'Cliente', 'certificados' );
+		$columns['certificados_issue_date'] = __( 'Emisión', 'certificados' );
+		$columns['certificados_code']       = __( 'Código', 'certificados' );
+		$columns['certificados_validate']   = __( 'Validación', 'certificados' );
+		$columns['date']                    = $date;
+
+		return $columns;
+	}
+
+	/**
+	 * Renders certificate list column values.
+	 *
+	 * @param string $column Column name.
+	 * @param int    $post_id Certificate post ID.
+	 */
+	public function render_certificate_column( $column, $post_id ) {
+		switch ( $column ) {
+			case 'certificados_course':
+				$course_id = absint( get_post_meta( $post_id, '_certificados_course_id', true ) );
+				echo $course_id ? esc_html( get_the_title( $course_id ) ) : '&mdash;';
+				break;
+
+			case 'certificados_customer':
+				$user_id = absint( get_post_meta( $post_id, '_certificados_user_id', true ) );
+				$user    = $user_id ? get_userdata( $user_id ) : false;
+				echo $user ? esc_html( sprintf( '%1$s (%2$s)', $user->display_name, $user->user_email ) ) : '&mdash;';
+				break;
+
+			case 'certificados_issue_date':
+				$issue_date = get_post_meta( $post_id, '_certificados_issue_date', true );
+				echo $issue_date ? esc_html( $issue_date ) : '&mdash;';
+				break;
+
+			case 'certificados_code':
+				$code = get_post_meta( $post_id, '_certificados_code', true );
+				echo $code ? '<code>' . esc_html( $code ) . '</code>' : '&mdash;';
+				break;
+
+			case 'certificados_validate':
+				$code = get_post_meta( $post_id, '_certificados_code', true );
+				if ( ! $code ) {
+					echo '&mdash;';
+					break;
+				}
+
+				echo '<a href="' . esc_url( Certificados_Frontend::get_verification_url( $code ) ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Validar', 'certificados' ) . '</a>';
+				break;
+		}
 	}
 
 	/**
