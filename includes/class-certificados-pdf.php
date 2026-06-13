@@ -206,7 +206,8 @@ final class Certificados_PDF {
 		}
 
 		$content .= self::pdf_wrapped_centered_text_color( 'F2', 29, 130, 238, 532, strtoupper( $data['participant'] ), 34, 32, 2, 0.996, 0.698, 0.043 );
-		$content .= self::pdf_wrapped_centered_text_color( 'F2', 12, 178, 188, 340, $data['message'], 48, 15, 4, 0.08, 0.08, 0.08 );
+		$content .= self::pdf_diamond_rule( 218, 214, 356 );
+		$content .= self::pdf_wrapped_centered_text_color( 'F2', 12, 196, 184, 400, $data['message'], 56, 15, 4, 0.08, 0.08, 0.08 );
 		$content .= self::pdf_reference_date_line( isset( $data['issue_date'] ) ? $data['issue_date'] : '', isset( $data['formatted_date'] ) ? $data['formatted_date'] : '', 396, 116 );
 
 		$content .= self::pdf_text_color( 'F1', 7, 650, 407, 'Código: ' . $data['code'], 0.08, 0.08, 0.08 );
@@ -216,6 +217,41 @@ final class Certificados_PDF {
 		}
 
 		return $content;
+	}
+
+	/**
+	 * Draws a gold separator rule with diamond endpoints.
+	 *
+	 * @param int $x Rule X coordinate.
+	 * @param int $y Rule Y coordinate.
+	 * @param int $width Rule width.
+	 * @return string
+	 */
+	private static function pdf_diamond_rule( $x, $y, $width ) {
+		$end_x = $x + $width;
+
+		return sprintf(
+			"q\n0.996 0.698 0.043 rg\n%.2F %.2F %.2F 1.5 re f\n%.2F %.2F m %.2F %.2F l %.2F %.2F l %.2F %.2F l h f\n%.2F %.2F m %.2F %.2F l %.2F %.2F l %.2F %.2F l h f\nQ\n",
+			$x + 5,
+			$y - 0.75,
+			$width - 10,
+			$x,
+			$y,
+			$x + 4,
+			$y + 4,
+			$x + 8,
+			$y,
+			$x + 4,
+			$y - 4,
+			$end_x,
+			$y,
+			$end_x - 4,
+			$y + 4,
+			$end_x - 8,
+			$y,
+			$end_x - 4,
+			$y - 4
+		);
 	}
 
 	/**
