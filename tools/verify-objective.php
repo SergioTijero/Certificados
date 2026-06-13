@@ -14,6 +14,7 @@ $root = dirname( __DIR__ );
 $checks = array(
 	'course post type'              => array( 'includes/class-certificados-post-types.php', "const COURSE_POST_TYPE      = 'cert_course';" ),
 	'certificate post type'         => array( 'includes/class-certificados-post-types.php', "const CERTIFICATE_POST_TYPE = 'cert_certificate';" ),
+	'certificate request post type' => array( 'includes/class-certificados-post-types.php', "const REQUEST_POST_TYPE     = 'cert_request';" ),
 	'custom role capabilities'      => array( 'includes/class-certificados-post-types.php', 'get_all_capabilities' ),
 	'shop manager capability sync'  => array( 'includes/class-certificados-plugin.php', "'shop_manager'" ),
 	'rewrite version sync'          => array( 'includes/class-certificados-plugin.php', 'certificados_rewrite_version' ),
@@ -26,6 +27,8 @@ $checks = array(
 	'unique validation code'        => array( 'includes/class-certificados-admin.php', 'generate_unique_code' ),
 	'woocommerce account endpoint'  => array( 'includes/class-certificados-frontend.php', "const ACCOUNT_ENDPOINT = 'certificados';" ),
 	'account certificate listing'   => array( 'includes/class-certificados-frontend.php', 'render_account_certificates' ),
+	'account certificate request'   => array( 'includes/class-certificados-frontend.php', 'handle_certificate_request_submission' ),
+	'request approval dashboard'    => array( 'includes/class-certificados-admin.php', 'approve_request' ),
 	'secure PDF download'           => array( 'includes/class-certificados-frontend.php', 'handle_pdf_download' ),
 	'admin PDF download'            => array( 'includes/class-certificados-admin.php', 'download_certificate_pdf' ),
 	'public validation route'       => array( 'includes/class-certificados-frontend.php', 'validar-certificado' ),

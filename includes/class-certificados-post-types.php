@@ -15,6 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class Certificados_Post_Types {
 	const COURSE_POST_TYPE      = 'cert_course';
 	const CERTIFICATE_POST_TYPE = 'cert_certificate';
+	const REQUEST_POST_TYPE     = 'cert_request';
 
 	/**
 	 * Singleton instance.
@@ -83,6 +84,23 @@ final class Certificados_Post_Types {
 				'map_meta_cap' => true,
 			)
 		);
+
+		register_post_type(
+			self::REQUEST_POST_TYPE,
+			array(
+				'labels'       => array(
+					'name'          => __( 'Solicitudes de certificado', 'certificados' ),
+					'singular_name' => __( 'Solicitud de certificado', 'certificados' ),
+					'edit_item'     => __( 'Revisar solicitud', 'certificados' ),
+				),
+				'public'       => false,
+				'show_ui'      => true,
+				'show_in_menu' => 'edit.php?post_type=' . self::COURSE_POST_TYPE,
+				'supports'     => array( 'title' ),
+				'capabilities' => self::get_request_capabilities(),
+				'map_meta_cap' => true,
+			)
+		);
 	}
 
 	/**
@@ -104,6 +122,15 @@ final class Certificados_Post_Types {
 	}
 
 	/**
+	 * Returns certificate request capabilities.
+	 *
+	 * @return array
+	 */
+	public static function get_request_capabilities() {
+		return self::build_capabilities( 'cert_request', 'cert_requests' );
+	}
+
+	/**
 	 * Returns all primitive capabilities used by this plugin.
 	 *
 	 * @return array
@@ -111,7 +138,8 @@ final class Certificados_Post_Types {
 	public static function get_all_capabilities() {
 		$capabilities = array_merge(
 			array_values( self::get_course_capabilities() ),
-			array_values( self::get_certificate_capabilities() )
+			array_values( self::get_certificate_capabilities() ),
+			array_values( self::get_request_capabilities() )
 		);
 
 		return array_values( array_unique( $capabilities ) );

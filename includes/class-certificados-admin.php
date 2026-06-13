@@ -48,8 +48,11 @@ final class Certificados_Admin {
 		add_action( 'admin_notices', array( $this, 'woocommerce_notice' ) );
 		add_filter( 'manage_' . Certificados_Post_Types::CERTIFICATE_POST_TYPE . '_posts_columns', array( $this, 'certificate_columns' ) );
 		add_action( 'manage_' . Certificados_Post_Types::CERTIFICATE_POST_TYPE . '_posts_custom_column', array( $this, 'render_certificate_column' ), 10, 2 );
+		add_filter( 'manage_' . Certificados_Post_Types::REQUEST_POST_TYPE . '_posts_columns', array( $this, 'request_columns' ) );
+		add_action( 'manage_' . Certificados_Post_Types::REQUEST_POST_TYPE . '_posts_custom_column', array( $this, 'render_request_column' ), 10, 2 );
 		add_action( 'admin_post_certificados_download_pdf', array( $this, 'download_certificate_pdf' ) );
 		add_action( 'admin_post_certificados_bulk_assign', array( $this, 'handle_bulk_assignment' ) );
+		add_action( 'admin_post_certificados_approve_request', array( $this, 'approve_request' ) );
 		add_action( 'wp_ajax_certificados_search_customers', array( $this, 'ajax_search_customers' ) );
 	}
 
@@ -115,6 +118,15 @@ final class Certificados_Admin {
 			__( 'Datos del certificado', 'certificados' ),
 			array( $this, 'render_certificate_box' ),
 			Certificados_Post_Types::CERTIFICATE_POST_TYPE,
+			'normal',
+			'default'
+		);
+
+		add_meta_box(
+			'certificados_request_details',
+			__( 'Datos de la solicitud', 'certificados' ),
+			array( $this, 'render_request_box' ),
+			Certificados_Post_Types::REQUEST_POST_TYPE,
 			'normal',
 			'default'
 		);
@@ -309,6 +321,61 @@ final class Certificados_Admin {
 			</form>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Renders request details and approval action.
+	 *
+	 * @param WP_Post $post Current post.
+	 */
+	public function render_request_box( $post ) {
+		$user_id        = absint( get_post_meta( $post->ID, '_certificados_request_user_id', true ) );
+		$full_name      = get_post_meta( $post->ID, '_certificados_request_full_name', true );
+		$email          = get_post_meta( $post->ID, '_certificados_request_email', true );
+		$requested      = get_post_meta( $post->ID, '_certificados_request_course', true );
+		$status         = get_post_meta( $post->ID, '_certificados_request_status', true );
+		$certificate_id = absint( get_post_meta( $post->ID, '_certificados_request_certificate_id', true ) );
+		$courses        = get_posts(
+			array(
+				'post_type'      => Certificados_Post_Types::COURSE_POST_TYPE,
+				'post_status'    => 'publish',
+				'posts_per_page' => -1,
+				'orderby'        => 'title',
+				'order'          => 'ASC',
+			)
+		);
+
+		echo '<table class="form-table" role="presentation">';
+		echo '<tr><th>' . esc_html__( 'Cliente', 'certificados' ) . '</th><td>' . esc_html( $full_name ) . ' <code>' . esc_html( $email ) . '</code></td></tr>';
+		echo '<tr><th>' . esc_html__( 'Usuario', 'certificados' ) . '</th><td>' . ( $user_id ? esc_html( '#' . $user_id ) : '&mdash;' ) . '</td></tr>';
+		echo '<tr><th>' . esc_html__( 'Curso indicado', 'certificados' ) . '</th><td>' . esc_html( $requested ) . '</td></tr>';
+		echo '<tr><th>' . esc_html__( 'Estado', 'certificados' ) . '</th><td><strong>' . esc_html( $status ? $status : __( 'pending', 'certificados' ) ) . '</strong></td></tr>';
+		echo '</table>';
+
+		if ( $certificate_id ) {
+			echo '<p><a class="button button-primary" href="' . esc_url( get_edit_post_link( $certificate_id ) ) . '">' . esc_html__( 'Ver certificado creado', 'certificados' ) . '</a></p>';
+			return;
+		}
+
+		echo '<hr>';
+		echo '<h3>' . esc_html__( 'Aprobar y crear certificado', 'certificados' ) . '</h3>';
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		echo '<input type="hidden" name="action" value="certificados_approve_request">';
+		echo '<input type="hidden" name="request_id" value="' . esc_attr( $post->ID ) . '">';
+		wp_nonce_field( 'certificados_approve_request_' . $post->ID, 'certificados_approve_request_nonce' );
+		echo '<p><label for="certificados_request_course_id"><strong>' . esc_html__( 'Curso real', 'certificados' ) . '</strong></label><br>';
+		echo '<select id="certificados_request_course_id" name="certificados_course_id" required>';
+		echo '<option value="">' . esc_html__( 'Seleccionar curso', 'certificados' ) . '</option>';
+		foreach ( $courses as $course ) {
+			echo '<option value="' . esc_attr( $course->ID ) . '">' . esc_html( get_the_title( $course ) ) . '</option>';
+		}
+		echo '</select></p>';
+		echo '<p><label for="certificados_request_issue_date"><strong>' . esc_html__( 'Fecha de emisión', 'certificados' ) . '</strong></label><br>';
+		echo '<input type="date" id="certificados_request_issue_date" name="certificados_issue_date" value="' . esc_attr( current_time( 'Y-m-d' ) ) . '" required></p>';
+		echo '<p><label for="certificados_request_message"><strong>' . esc_html__( 'Mensaje del certificado', 'certificados' ) . '</strong></label><br>';
+		echo '<textarea id="certificados_request_message" name="certificados_message" class="large-text" rows="4">' . esc_textarea( $this->get_default_certificate_message() ) . '</textarea></p>';
+		submit_button( __( 'Aprobar y crear certificado', 'certificados' ), 'primary', 'submit', false );
+		echo '</form>';
 	}
 
 	/**
@@ -561,6 +628,124 @@ final class Certificados_Admin {
 				echo '<a href="' . esc_url( $this->get_admin_pdf_url( $post_id ) ) . '">' . esc_html__( 'Descargar', 'certificados' ) . '</a>';
 				break;
 		}
+	}
+
+	/**
+	 * Adds useful columns to the request list.
+	 *
+	 * @param array $columns Existing columns.
+	 * @return array
+	 */
+	public function request_columns( $columns ) {
+		$date = isset( $columns['date'] ) ? $columns['date'] : __( 'Fecha', 'certificados' );
+		unset( $columns['date'] );
+
+		$columns['certificados_request_customer'] = __( 'Cliente', 'certificados' );
+		$columns['certificados_request_course']   = __( 'Curso indicado', 'certificados' );
+		$columns['certificados_request_status']   = __( 'Estado', 'certificados' );
+		$columns['certificados_request_result']   = __( 'Resultado', 'certificados' );
+		$columns['date']                          = $date;
+
+		return $columns;
+	}
+
+	/**
+	 * Renders request list column values.
+	 *
+	 * @param string $column Column name.
+	 * @param int    $post_id Request post ID.
+	 */
+	public function render_request_column( $column, $post_id ) {
+		switch ( $column ) {
+			case 'certificados_request_customer':
+				$name  = get_post_meta( $post_id, '_certificados_request_full_name', true );
+				$email = get_post_meta( $post_id, '_certificados_request_email', true );
+				echo esc_html( $name ) . '<br><code>' . esc_html( $email ) . '</code>';
+				break;
+
+			case 'certificados_request_course':
+				echo esc_html( get_post_meta( $post_id, '_certificados_request_course', true ) );
+				break;
+
+			case 'certificados_request_status':
+				$status = get_post_meta( $post_id, '_certificados_request_status', true );
+				echo esc_html( $status ? $status : __( 'pending', 'certificados' ) );
+				break;
+
+			case 'certificados_request_result':
+				$certificate_id = absint( get_post_meta( $post_id, '_certificados_request_certificate_id', true ) );
+				echo $certificate_id ? '<a href="' . esc_url( get_edit_post_link( $certificate_id ) ) . '">' . esc_html__( 'Certificado creado', 'certificados' ) . '</a>' : '&mdash;';
+				break;
+		}
+	}
+
+	/**
+	 * Approves a customer request and creates the certificate.
+	 */
+	public function approve_request() {
+		$request_id = isset( $_POST['request_id'] ) ? absint( wp_unslash( $_POST['request_id'] ) ) : 0;
+		if ( ! $request_id || ! current_user_can( 'edit_post', $request_id ) ) {
+			wp_die(
+				esc_html__( 'No tienes permiso para aprobar esta solicitud.', 'certificados' ),
+				esc_html__( 'Permiso denegado', 'certificados' ),
+				array( 'response' => 403 )
+			);
+		}
+
+		check_admin_referer( 'certificados_approve_request_' . $request_id, 'certificados_approve_request_nonce' );
+
+		$user_id    = absint( get_post_meta( $request_id, '_certificados_request_user_id', true ) );
+		$course_id  = isset( $_POST['certificados_course_id'] ) ? absint( wp_unslash( $_POST['certificados_course_id'] ) ) : 0;
+		$issue_date = $this->sanitize_date( 'certificados_issue_date' );
+		$message    = $this->sanitize_message( 'certificados_message' );
+		$user       = get_userdata( $user_id );
+
+		if ( ! $user || Certificados_Post_Types::COURSE_POST_TYPE !== get_post_type( $course_id ) ) {
+			wp_die(
+				esc_html__( 'La solicitud no tiene un usuario válido o falta seleccionar un curso válido.', 'certificados' ),
+				esc_html__( 'Solicitud incompleta', 'certificados' ),
+				array( 'response' => 400 )
+			);
+		}
+
+		$certificate_id = wp_insert_post(
+			array(
+				'post_type'   => Certificados_Post_Types::CERTIFICATE_POST_TYPE,
+				'post_status' => 'publish',
+				'post_title'  => sprintf(
+					/* translators: 1: course title, 2: customer name. */
+					__( '%1$s - %2$s', 'certificados' ),
+					get_the_title( $course_id ),
+					$user->display_name
+				),
+			)
+		);
+
+		if ( is_wp_error( $certificate_id ) || ! $certificate_id ) {
+			wp_die(
+				esc_html__( 'No se pudo crear el certificado.', 'certificados' ),
+				esc_html__( 'Error al crear certificado', 'certificados' ),
+				array( 'response' => 500 )
+			);
+		}
+
+		update_post_meta( $certificate_id, '_certificados_course_id', $course_id );
+		update_post_meta( $certificate_id, '_certificados_user_id', $user_id );
+		update_post_meta( $certificate_id, '_certificados_issue_date', $issue_date );
+		update_post_meta( $certificate_id, '_certificados_message', $message );
+		update_post_meta( $certificate_id, '_certificados_code', $this->generate_unique_code() );
+
+		update_post_meta( $request_id, '_certificados_request_status', 'approved' );
+		update_post_meta( $request_id, '_certificados_request_certificate_id', $certificate_id );
+		wp_update_post(
+			array(
+				'ID'          => $request_id,
+				'post_status' => 'publish',
+			)
+		);
+
+		wp_safe_redirect( get_edit_post_link( $request_id, 'redirect' ) );
+		exit;
 	}
 
 	/**

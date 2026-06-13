@@ -169,6 +169,10 @@ function wp_nonce_url( $url, $action ) {
 	return add_query_arg( array( '_wpnonce' => 'nonce-' . $action ), $url );
 }
 
+function wp_nonce_field( $action, $name ) {
+	echo '<input type="hidden" name="' . esc_attr( $name ) . '" value="nonce-' . esc_attr( $action ) . '">';
+}
+
 function wc_get_account_endpoint_url( $endpoint ) {
 	return 'https://example.test/my-account/' . $endpoint . '/';
 }
@@ -201,6 +205,8 @@ $frontend->render_account_certificates();
 $html = ob_get_clean();
 
 certificados_frontend_test_assert( false !== strpos( $html, 'Mis certificados' ), 'account section title is rendered' );
+certificados_frontend_test_assert( false !== strpos( $html, 'Solicitar certificado' ), 'certificate request button is rendered' );
+certificados_frontend_test_assert( false !== strpos( $html, 'certificados_request_action' ), 'certificate request form is rendered' );
 certificados_frontend_test_assert( false !== strpos( $html, 'Taller de Marketing Digital' ), 'assigned course is rendered' );
 certificados_frontend_test_assert( false !== strpos( $html, 'CERT-DEMO123' ), 'validation code is rendered' );
 certificados_frontend_test_assert( false !== strpos( $html, 'Descargar PDF' ), 'PDF download action is rendered' );

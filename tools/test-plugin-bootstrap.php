@@ -142,6 +142,7 @@ $state = $GLOBALS['certificados_test'];
 
 certificados_test_assert( isset( $state['post_types']['cert_course'] ), 'course post type is registered on activation' );
 certificados_test_assert( isset( $state['post_types']['cert_certificate'] ), 'certificate post type is registered on activation' );
+certificados_test_assert( isset( $state['post_types']['cert_request'] ), 'certificate request post type is registered on activation' );
 certificados_test_assert( isset( $state['rewrite_endpoints']['certificados'] ), 'WooCommerce account endpoint is registered' );
 certificados_test_assert( isset( $state['rewrite_rules']['^validar-certificado/([^/]+)/?$'] ), 'public validation rewrite rule is registered' );
 certificados_test_assert( isset( $state['filters']['woocommerce_account_menu_items'] ), 'WooCommerce account menu filter is registered' );
@@ -152,6 +153,7 @@ certificados_test_assert( isset( $state['actions']['admin_menu'] ), 'bulk assign
 certificados_test_assert( isset( $state['actions']['admin_enqueue_scripts'] ), 'admin customer search assets are registered' );
 certificados_test_assert( isset( $state['actions']['wp_ajax_certificados_search_customers'] ), 'customer AJAX search handler is registered' );
 certificados_test_assert( isset( $state['actions']['admin_post_certificados_bulk_assign'] ), 'bulk assignment handler is registered' );
+certificados_test_assert( isset( $state['actions']['admin_post_certificados_approve_request'] ), 'request approval handler is registered' );
 certificados_test_assert( isset( $state['actions']['add_meta_boxes'] ), 'admin meta boxes are registered' );
 certificados_test_assert( isset( $state['filters']['manage_cert_certificate_posts_columns'] ), 'certificate admin columns filter is registered' );
 certificados_test_assert( isset( $state['actions']['manage_cert_certificate_posts_custom_column'] ), 'certificate admin custom column renderer is registered' );
@@ -169,6 +171,7 @@ foreach ( array( 'administrator', 'shop_manager' ) as $role_name ) {
 	$role = get_role( $role_name );
 	certificados_test_assert( $role->has_cap( 'edit_cert_courses' ), "{$role_name} has course management capabilities" );
 	certificados_test_assert( $role->has_cap( 'edit_cert_certificates' ), "{$role_name} has certificate management capabilities" );
+	certificados_test_assert( $role->has_cap( 'edit_cert_requests' ), "{$role_name} has certificate request management capabilities" );
 	foreach ( Certificados_Post_Types::get_all_capabilities() as $capability ) {
 		certificados_test_assert( $role->has_cap( $capability ), "{$role_name} has {$capability}" );
 	}

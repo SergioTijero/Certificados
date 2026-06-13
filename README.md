@@ -17,6 +17,7 @@ Primera versión funcional en desarrollo. Incluye:
 - Shortcode compatible con Elementor para páginas de validación.
 - PDF en formato horizontal con marco, color de marca `#feb20b`, código QR y logotipo del sitio (con conversión dinámica de PNG indexados y fallback por defecto).
 - Plantilla de PDF tipo diploma inspirada en el certificado de The Homebrewer Peru, con mensaje editable por certificado o por asignación masiva.
+- Solicitud de certificados desde “Mi cuenta” con bandeja de aprobación manual en WordPress.
 
 ## Instalación local
 
@@ -73,6 +74,12 @@ php tools/test-frontend-flow.php
 El PDF se genera en formato horizontal (Landscape) con una plantilla tipo diploma: fondo oscuro, área central blanca, marco dorado `#feb20b`, banda honorífica, nombre del participante destacado, mensaje editable, fecha con formato “Lima 23 de MAYO del 2026”, logotipo de *The Homebrewer Peru* y código QR incrustado para validación rápida con QuickChart. El logotipo usa el logo configurado del tema o, si no hay uno, el fallback `https://thehomebrewerperu.com/wp-content/uploads/2019/12/Logo_thbp.png`.
 
 Las fechas del curso son referenciales y opcionales. Para cursos que se repiten cada mes, usa la fecha de emisión del certificado.
+
+## Solicitudes de clientes
+
+En **Mi cuenta > Certificados**, el cliente puede usar el botón **Solicitar certificado** para enviar su nombre completo, correo y el curso que tomó. El formulario usa la misma línea visual del PDF: negro, dorado `#feb20b`, bordes sobrios y botones de marca.
+
+Las solicitudes llegan a **Cursos y talleres > Solicitudes de certificado**. Desde cada solicitud, un administrador o gestor de tienda puede seleccionar el curso real, revisar fecha/mensaje y aprobarla. Al aprobar, el plugin crea el certificado publicado y queda visible automáticamente para el cliente en **Mi cuenta > Certificados**.
 
 ## Asignación masiva
 

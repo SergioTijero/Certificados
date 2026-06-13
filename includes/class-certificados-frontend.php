@@ -46,6 +46,7 @@ final class Certificados_Frontend {
 		add_filter( 'woocommerce_get_query_vars', array( $this, 'add_woocommerce_query_vars' ) );
 		add_filter( 'woocommerce_account_menu_items', array( $this, 'add_account_menu_item' ) );
 		add_action( 'woocommerce_account_' . self::ACCOUNT_ENDPOINT . '_endpoint', array( $this, 'render_account_certificates' ) );
+		add_action( 'template_redirect', array( $this, 'handle_certificate_request_submission' ), 1 );
 		add_filter( 'the_title', array( $this, 'account_endpoint_title' ) );
 		add_shortcode( 'certificados_validacion', array( $this, 'validation_shortcode' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
@@ -165,9 +166,9 @@ final class Certificados_Frontend {
 }
 .certificados-validation-card {
 	background: #ffffff;
-	border-radius: 16px;
-	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.02);
-	border: 1px solid rgba(0, 0, 0, 0.06);
+	border-radius: 8px;
+	box-shadow: 0 14px 34px rgba(0, 0, 0, 0.12);
+	border: 3px solid #feb20b;
 	width: 100%;
 	max-width: 500px;
 	padding: 35px;
@@ -192,26 +193,26 @@ final class Certificados_Frontend {
 	line-height: 1;
 }
 .certificados-validation-icon.success {
-	background: #e6f7ed;
-	color: #00a854;
-	box-shadow: 0 0 0 8px #f0fbf5;
+	background: #feb20b;
+	color: #111111;
+	box-shadow: 0 0 0 8px rgba(254, 178, 11, 0.18);
 	animation: pulse-success-cert 2s infinite;
 }
 .certificados-validation-icon.error {
-	background: #fdf2f2;
-	color: #de350b;
-	box-shadow: 0 0 0 8px #fef7f7;
+	background: #111111;
+	color: #feb20b;
+	box-shadow: 0 0 0 8px rgba(17, 17, 17, 0.12);
 	animation: pulse-error-cert 2s infinite;
 }
 @keyframes pulse-success-cert {
-	0% { box-shadow: 0 0 0 0 rgba(0, 168, 84, 0.2); }
-	70% { box-shadow: 0 0 0 12px rgba(0, 168, 84, 0); }
-	100% { box-shadow: 0 0 0 0 rgba(0, 168, 84, 0); }
+	0% { box-shadow: 0 0 0 0 rgba(254, 178, 11, 0.28); }
+	70% { box-shadow: 0 0 0 12px rgba(254, 178, 11, 0); }
+	100% { box-shadow: 0 0 0 0 rgba(254, 178, 11, 0); }
 }
 @keyframes pulse-error-cert {
-	0% { box-shadow: 0 0 0 0 rgba(222, 53, 11, 0.2); }
-	70% { box-shadow: 0 0 0 12px rgba(222, 53, 11, 0); }
-	100% { box-shadow: 0 0 0 0 rgba(222, 53, 11, 0); }
+	0% { box-shadow: 0 0 0 0 rgba(17, 17, 17, 0.2); }
+	70% { box-shadow: 0 0 0 12px rgba(17, 17, 17, 0); }
+	100% { box-shadow: 0 0 0 0 rgba(17, 17, 17, 0); }
 }
 .certificados-validation-card h1 {
 	font-size: 22px;
@@ -227,12 +228,12 @@ final class Certificados_Frontend {
 	line-height: 1.5;
 }
 .certificados-validation-details {
-	background: #f9f9fb;
-	border-radius: 12px;
+	background: #faf7ef;
+	border-radius: 8px;
 	padding: 20px;
 	margin: 24px 0;
 	text-align: left;
-	border: 1px solid rgba(0, 0, 0, 0.03);
+	border: 1px solid rgba(254, 178, 11, 0.45);
 }
 .certificados-validation-details dl {
 	margin: 0;
@@ -242,14 +243,14 @@ final class Certificados_Frontend {
 	font-size: 11px;
 	text-transform: uppercase;
 	letter-spacing: 0.8px;
-	color: #888888;
+	color: #8f6500;
 	margin: 0 0 4px 0;
 	font-weight: 600;
 }
 .certificados-validation-details dd {
 	font-size: 15px;
 	font-weight: 600;
-	color: #2c3e50;
+	color: #111111;
 	margin: 0 0 16px 0;
 	line-height: 1.4;
 }
@@ -258,11 +259,11 @@ final class Certificados_Frontend {
 }
 .certificados-validation-details code {
 	font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
-	background: #eaeaea;
+	background: #111111;
 	padding: 2px 5px;
 	border-radius: 4px;
 	font-size: 13px;
-	color: #333333;
+	color: #feb20b;
 }
 .certificados-validation-qr {
 	margin-top: 24px;
@@ -272,7 +273,7 @@ final class Certificados_Frontend {
 	height: auto;
 	padding: 8px;
 	background: #ffffff;
-	border: 1px solid #eaeaea;
+	border: 1px solid #feb20b;
 	border-radius: 8px;
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
 	display: inline-block;
@@ -295,7 +296,7 @@ final class Certificados_Frontend {
 .certificados-validation-form input[type="text"] {
 	flex: 1;
 	padding: 10px 14px;
-	border: 1.5px solid #dddddd;
+	border: 1.5px solid rgba(17, 17, 17, 0.25);
 	border-radius: 8px;
 	font-size: 14px;
 	transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -318,11 +319,88 @@ final class Certificados_Frontend {
 	cursor: pointer;
 	transition: background-color 0.2s ease, transform 0.1s ease;
 }
+.certificados-request-box {
+	background: #ffffff;
+	border: 2px solid #feb20b;
+	border-radius: 8px;
+	margin: 18px 0 24px;
+	padding: 16px;
+	box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+}
+.certificados-request-box[open] .certificados-request-button {
+	margin-bottom: 14px;
+}
+.certificados-request-button {
+	background: #feb20b;
+	color: #111111;
+	border: 0;
+	border-radius: 6px;
+	cursor: pointer;
+	display: inline-block;
+	font-weight: 700;
+	padding: 10px 16px;
+}
+.certificados-request-form {
+	border-top: 1px solid rgba(254, 178, 11, 0.45);
+	padding-top: 14px;
+}
+.certificados-request-form p {
+	margin: 0 0 14px;
+}
+.certificados-request-form label {
+	color: #111111;
+	font-size: 13px;
+	font-weight: 700;
+}
+.certificados-request-form input[type="text"],
+.certificados-request-form input[type="email"] {
+	border: 1.5px solid rgba(17, 17, 17, 0.25);
+	border-radius: 6px;
+	box-sizing: border-box;
+	max-width: 520px;
+	padding: 10px 12px;
+	width: 100%;
+}
+.certificados-request-form input[type="text"]:focus,
+.certificados-request-form input[type="email"]:focus {
+	border-color: #feb20b;
+	box-shadow: 0 0 0 3px rgba(254, 178, 11, 0.15);
+	outline: none;
+}
+.certificados-request-form button.button {
+	background: #111111;
+	border: 1px solid #111111;
+	color: #feb20b;
+	font-weight: 700;
+}
 .certificados-validation-form button:hover {
 	background: #e5a00a;
 }
 .certificados-validation-form button:active {
 	transform: scale(0.98);
+}
+.woocommerce-orders-table.shop_table.shop_table_responsive {
+	border: 2px solid #feb20b;
+	border-radius: 8px;
+	overflow: hidden;
+}
+.woocommerce-orders-table.shop_table.shop_table_responsive thead th {
+	background: #111111;
+	color: #feb20b;
+	font-weight: 700;
+}
+.woocommerce-orders-table.shop_table.shop_table_responsive td code {
+	background: #111111;
+	border-radius: 4px;
+	color: #feb20b;
+	padding: 3px 6px;
+}
+.woocommerce-orders-table.shop_table.shop_table_responsive .button {
+	background: #feb20b;
+	border: 1px solid #feb20b;
+	border-radius: 6px;
+	color: #111111;
+	font-weight: 700;
 }
 CSS;
 	}
@@ -339,6 +417,8 @@ CSS;
 		$certificates = self::get_user_certificates( get_current_user_id() );
 
 		echo '<h2>' . esc_html__( 'Mis certificados', 'certificados' ) . '</h2>';
+		$this->render_request_notices();
+		$this->render_certificate_request_form();
 
 		if ( empty( $certificates ) ) {
 			echo '<p>' . esc_html__( 'Aún no tienes certificados disponibles.', 'certificados' ) . '</p>';
@@ -379,6 +459,113 @@ CSS;
 		}
 
 		echo '</tbody></table>';
+	}
+
+	/**
+	 * Handles customer certificate request submissions.
+	 */
+	public function handle_certificate_request_submission() {
+		if ( empty( $_POST['certificados_request_action'] ) || 'request_certificate' !== $_POST['certificados_request_action'] ) {
+			return;
+		}
+
+		if ( ! is_user_logged_in() ) {
+			return;
+		}
+
+		if (
+			empty( $_POST['certificados_request_nonce'] )
+			|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['certificados_request_nonce'] ) ), 'certificados_request_certificate' )
+		) {
+			wp_safe_redirect( add_query_arg( 'certificados_solicitud', 'error', wc_get_account_endpoint_url( self::ACCOUNT_ENDPOINT ) ) );
+			exit;
+		}
+
+		$user_id   = get_current_user_id();
+		$user      = get_userdata( $user_id );
+		$full_name = isset( $_POST['certificados_request_full_name'] ) ? sanitize_text_field( wp_unslash( $_POST['certificados_request_full_name'] ) ) : '';
+		$email     = isset( $_POST['certificados_request_email'] ) ? sanitize_email( wp_unslash( $_POST['certificados_request_email'] ) ) : '';
+		$course    = isset( $_POST['certificados_request_course'] ) ? sanitize_text_field( wp_unslash( $_POST['certificados_request_course'] ) ) : '';
+
+		if ( ! $full_name && $user ) {
+			$full_name = $user->display_name;
+		}
+		if ( ! $email && $user ) {
+			$email = $user->user_email;
+		}
+
+		if ( ! $full_name || ! is_email( $email ) || ! $course ) {
+			wp_safe_redirect( add_query_arg( 'certificados_solicitud', 'error', wc_get_account_endpoint_url( self::ACCOUNT_ENDPOINT ) ) );
+			exit;
+		}
+
+		$request_id = wp_insert_post(
+			array(
+				'post_type'   => Certificados_Post_Types::REQUEST_POST_TYPE,
+				'post_status' => 'pending',
+				'post_title'  => sprintf(
+					/* translators: 1: customer full name, 2: requested course. */
+					__( 'Solicitud de %1$s - %2$s', 'certificados' ),
+					$full_name,
+					$course
+				),
+			)
+		);
+
+		if ( is_wp_error( $request_id ) || ! $request_id ) {
+			wp_safe_redirect( add_query_arg( 'certificados_solicitud', 'error', wc_get_account_endpoint_url( self::ACCOUNT_ENDPOINT ) ) );
+			exit;
+		}
+
+		update_post_meta( $request_id, '_certificados_request_user_id', $user_id );
+		update_post_meta( $request_id, '_certificados_request_full_name', $full_name );
+		update_post_meta( $request_id, '_certificados_request_email', $email );
+		update_post_meta( $request_id, '_certificados_request_course', $course );
+		update_post_meta( $request_id, '_certificados_request_status', 'pending' );
+
+		wp_safe_redirect( add_query_arg( 'certificados_solicitud', 'ok', wc_get_account_endpoint_url( self::ACCOUNT_ENDPOINT ) ) );
+		exit;
+	}
+
+	/**
+	 * Renders request status notices on the account page.
+	 */
+	private function render_request_notices() {
+		if ( empty( $_GET['certificados_solicitud'] ) ) {
+			return;
+		}
+
+		$status = sanitize_key( wp_unslash( $_GET['certificados_solicitud'] ) );
+		if ( 'ok' === $status ) {
+			echo '<div class="woocommerce-message">' . esc_html__( 'Recibimos tu solicitud. La revisaremos y, si corresponde, activaremos tu certificado en esta misma sección.', 'certificados' ) . '</div>';
+		} elseif ( 'error' === $status ) {
+			echo '<div class="woocommerce-error">' . esc_html__( 'No pudimos registrar la solicitud. Revisa tu nombre, correo y curso.', 'certificados' ) . '</div>';
+		}
+	}
+
+	/**
+	 * Renders the customer certificate request form.
+	 */
+	private function render_certificate_request_form() {
+		$user      = get_userdata( get_current_user_id() );
+		$full_name = $user ? $user->display_name : '';
+		$email     = $user ? $user->user_email : '';
+
+		echo '<details class="certificados-request-box">';
+		echo '<summary class="button certificados-request-button">' . esc_html__( 'Solicitar certificado', 'certificados' ) . '</summary>';
+		echo '<form method="post" class="certificados-request-form">';
+		echo '<p>' . esc_html__( 'Indícanos tus datos y el curso que tomaste para revisar tu certificado manualmente.', 'certificados' ) . '</p>';
+		echo '<p><label for="certificados_request_full_name">' . esc_html__( 'Nombre completo', 'certificados' ) . '</label><br>';
+		echo '<input type="text" id="certificados_request_full_name" name="certificados_request_full_name" value="' . esc_attr( $full_name ) . '" required></p>';
+		echo '<p><label for="certificados_request_email">' . esc_html__( 'Correo', 'certificados' ) . '</label><br>';
+		echo '<input type="email" id="certificados_request_email" name="certificados_request_email" value="' . esc_attr( $email ) . '" required></p>';
+		echo '<p><label for="certificados_request_course">' . esc_html__( 'Curso que tomaste', 'certificados' ) . '</label><br>';
+		echo '<input type="text" id="certificados_request_course" name="certificados_request_course" required></p>';
+		echo '<input type="hidden" name="certificados_request_action" value="request_certificate">';
+		wp_nonce_field( 'certificados_request_certificate', 'certificados_request_nonce' );
+		echo '<p><button type="submit" class="button">' . esc_html__( 'Enviar solicitud', 'certificados' ) . '</button></p>';
+		echo '</form>';
+		echo '</details>';
 	}
 
 	/**
