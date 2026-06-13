@@ -205,7 +205,7 @@ final class Certificados_PDF {
 		$content .= self::pdf_wrapped_centered_text_color( 'F2', 11, 96, 333, 600, 'OTORGADO A:', 24, 13, 1, 0.09, 0.08, 0.07 );
 		$content .= self::pdf_wrapped_centered_text_color( 'F2', 28, 110, 286, 572, strtoupper( $data['participant'] ), 32, 32, 2, 0.86, 0.47, 0.04 );
 		$content .= self::pdf_wrapped_centered_text_color( 'F1', 13, 138, 238, 516, $data['message'], 78, 18, 4, 0.1, 0.1, 0.1 );
-		$content .= self::pdf_wrapped_centered_text_color( 'F1', 12, 130, 177, 344, 'Lima ' . $data['formatted_date'], 44, 15, 1, 0.1, 0.1, 0.1 );
+		$content .= self::pdf_reference_date_line( isset( $data['issue_date'] ) ? $data['issue_date'] : '', isset( $data['formatted_date'] ) ? $data['formatted_date'] : '', 396, 170 );
 
 		$content .= self::pdf_text_color( 'F1', 9, 170, 116, 'Código: ' . $data['code'], 0.1, 0.1, 0.1 );
 		$content .= self::pdf_wrapped_text_color( 'F1', 7, 170, 101, $data['verification_url'], 42, 9, 2, 0.1, 0.1, 0.1 );
@@ -349,6 +349,60 @@ final class Certificados_PDF {
 		}
 
 		return $content;
+	}
+
+	/**
+	 * Builds the certificate date line with emphasis matching the reference design.
+	 *
+	 * @param string $date Date in Y-m-d format.
+	 * @param string $fallback Fallback formatted date.
+	 * @param int    $center_x Center X coordinate.
+	 * @param int    $y Y coordinate.
+	 * @return string
+	 */
+	private static function pdf_reference_date_line( $date, $fallback, $center_x, $y ) {
+		$parts = self::get_spanish_date_parts( $date );
+		if ( ! $parts ) {
+			return self::pdf_wrapped_centered_text_color( 'F1', 12, $center_x - 180, $y, 360, 'Lima ' . $fallback, 48, 15, 1, 0.1, 0.1, 0.1 );
+		}
+
+		$segments = array(
+			array( 'F1', 13, 'Lima', 0.1, 0.1, 0.1 ),
+			array( 'F2', 16, $parts['day'], 0.95, 0.53, 0.02 ),
+			array( 'F1', 13, 'de', 0.1, 0.1, 0.1 ),
+			array( 'F2', 16, $parts['month'], 0.95, 0.53, 0.02 ),
+			array( 'F1', 13, 'del', 0.1, 0.1, 0.1 ),
+			array( 'F2', 16, $parts['year'], 0.95, 0.53, 0.02 ),
+		);
+
+		$segment_gap = 14;
+		$total_width = $segment_gap * ( count( $segments ) - 1 );
+		foreach ( $segments as $segment ) {
+			$total_width += self::estimate_pdf_text_width( $segment[0], $segment[1], $segment[2] );
+		}
+
+		$content = '';
+		$x       = $center_x - ( $total_width / 2 );
+		foreach ( $segments as $segment ) {
+			$content .= self::pdf_text_color( $segment[0], $segment[1], (int) $x, $y, $segment[2], $segment[3], $segment[4], $segment[5] );
+			$x       += self::estimate_pdf_text_width( $segment[0], $segment[1], $segment[2] ) + $segment_gap;
+		}
+
+		return $content;
+	}
+
+	/**
+	 * Estimates text width for simple Helvetica PDF placement.
+	 *
+	 * @param string $font Font resource name.
+	 * @param int    $size Font size.
+	 * @param string $text Text.
+	 * @return float
+	 */
+	private static function estimate_pdf_text_width( $font, $size, $text ) {
+		$factor = ( 'F2' === $font && strtoupper( $text ) === $text ) ? 0.62 : 0.48;
+
+		return strlen( self::escape_pdf_text( $text ) ) * $size * $factor;
 	}
 
 	/**
@@ -722,8 +776,23 @@ final class Certificados_PDF {
 	 * @return string
 	 */
 	private static function format_spanish_date( $date ) {
-		if ( ! preg_match( '/^(\d{4})-(\d{2})-(\d{2})$/', (string) $date, $matches ) ) {
+		$parts = self::get_spanish_date_parts( $date );
+		if ( ! $parts ) {
 			return $date;
+		}
+
+		return $parts['day'] . ' de ' . $parts['month'] . ' del ' . $parts['year'];
+	}
+
+	/**
+	 * Splits a date into Spanish certificate parts.
+	 *
+	 * @param string $date Date in Y-m-d format.
+	 * @return array|null
+	 */
+	private static function get_spanish_date_parts( $date ) {
+		if ( ! preg_match( '/^(\d{4})-(\d{2})-(\d{2})$/', (string) $date, $matches ) ) {
+			return null;
 		}
 
 		$months = array(
@@ -744,7 +813,11 @@ final class Certificados_PDF {
 		$day   = (string) absint( $matches[3] );
 		$month = isset( $months[ $matches[2] ] ) ? $months[ $matches[2] ] : $matches[2];
 
-		return $day . ' de ' . $month . ' del ' . $matches[1];
+		return array(
+			'day'   => $day,
+			'month' => $month,
+			'year'  => $matches[1],
+		);
 	}
 
 	/**
