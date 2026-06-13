@@ -102,7 +102,7 @@ final class Certificados_PDF {
 				'name'   => 'TITLE1',
 				'image'  => $title,
 				'x'      => ( self::PAGE_WIDTH - $title_box['width'] ) / 2,
-				'y'      => 306,
+				'y'      => 286,
 				'width'  => $title_box['width'],
 				'height' => $title_box['height'],
 			);
@@ -205,9 +205,9 @@ final class Certificados_PDF {
 			);
 		}
 
-		$content .= self::pdf_wrapped_centered_text_color( 'F2', 29, 130, 258, 532, strtoupper( $data['participant'] ), 34, 32, 2, 0.996, 0.698, 0.043 );
-		$content .= self::pdf_wrapped_centered_text_color( 'F2', 13, 146, 212, 430, $data['message'], 58, 17, 4, 0.08, 0.08, 0.08 );
-		$content .= self::pdf_reference_date_line( isset( $data['issue_date'] ) ? $data['issue_date'] : '', isset( $data['formatted_date'] ) ? $data['formatted_date'] : '', 396, 152 );
+		$content .= self::pdf_wrapped_centered_text_color( 'F2', 29, 130, 238, 532, strtoupper( $data['participant'] ), 34, 32, 2, 0.996, 0.698, 0.043 );
+		$content .= self::pdf_wrapped_centered_text_color( 'F2', 12, 178, 188, 340, $data['message'], 48, 15, 4, 0.08, 0.08, 0.08 );
+		$content .= self::pdf_reference_date_line( isset( $data['issue_date'] ) ? $data['issue_date'] : '', isset( $data['formatted_date'] ) ? $data['formatted_date'] : '', 396, 116 );
 
 		$content .= self::pdf_text_color( 'F1', 7, 650, 407, 'Código: ' . $data['code'], 0.08, 0.08, 0.08 );
 
