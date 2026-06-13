@@ -153,7 +153,7 @@ certificados_test_assert( isset( $state['actions']['admin_menu'] ), 'bulk assign
 certificados_test_assert( isset( $state['actions']['admin_enqueue_scripts'] ), 'admin customer search assets are registered' );
 certificados_test_assert( isset( $state['actions']['wp_ajax_certificados_search_customers'] ), 'customer AJAX search handler is registered' );
 certificados_test_assert( isset( $state['actions']['admin_post_certificados_bulk_assign'] ), 'bulk assignment handler is registered' );
-certificados_test_assert( isset( $state['actions']['admin_post_certificados_approve_request'] ), 'request approval handler is registered' );
+certificados_test_assert( isset( $state['actions']['save_post_cert_request'] ), 'request approval save handler is registered' );
 certificados_test_assert( isset( $state['actions']['add_meta_boxes'] ), 'admin meta boxes are registered' );
 certificados_test_assert( isset( $state['filters']['manage_cert_certificate_posts_columns'] ), 'certificate admin columns filter is registered' );
 certificados_test_assert( isset( $state['actions']['manage_cert_certificate_posts_custom_column'] ), 'certificate admin custom column renderer is registered' );

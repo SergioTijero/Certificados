@@ -45,6 +45,7 @@ final class Certificados_Admin {
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
 		add_action( 'save_post_' . Certificados_Post_Types::COURSE_POST_TYPE, array( $this, 'save_course' ) );
 		add_action( 'save_post_' . Certificados_Post_Types::CERTIFICATE_POST_TYPE, array( $this, 'save_certificate' ) );
+		add_action( 'save_post_' . Certificados_Post_Types::REQUEST_POST_TYPE, array( $this, 'save_request' ) );
 		add_action( 'admin_notices', array( $this, 'woocommerce_notice' ) );
 		add_filter( 'manage_' . Certificados_Post_Types::CERTIFICATE_POST_TYPE . '_posts_columns', array( $this, 'certificate_columns' ) );
 		add_action( 'manage_' . Certificados_Post_Types::CERTIFICATE_POST_TYPE . '_posts_custom_column', array( $this, 'render_certificate_column' ), 10, 2 );
@@ -52,7 +53,6 @@ final class Certificados_Admin {
 		add_action( 'manage_' . Certificados_Post_Types::REQUEST_POST_TYPE . '_posts_custom_column', array( $this, 'render_request_column' ), 10, 2 );
 		add_action( 'admin_post_certificados_download_pdf', array( $this, 'download_certificate_pdf' ) );
 		add_action( 'admin_post_certificados_bulk_assign', array( $this, 'handle_bulk_assignment' ) );
-		add_action( 'admin_post_certificados_approve_request', array( $this, 'approve_request' ) );
 		add_action( 'wp_ajax_certificados_search_customers', array( $this, 'ajax_search_customers' ) );
 	}
 
@@ -359,9 +359,6 @@ final class Certificados_Admin {
 
 		echo '<hr>';
 		echo '<h3>' . esc_html__( 'Aprobar y crear certificado', 'certificados' ) . '</h3>';
-		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-		echo '<input type="hidden" name="action" value="certificados_approve_request">';
-		echo '<input type="hidden" name="request_id" value="' . esc_attr( $post->ID ) . '">';
 		wp_nonce_field( 'certificados_approve_request_' . $post->ID, 'certificados_approve_request_nonce' );
 		echo '<p><label for="certificados_request_course_id"><strong>' . esc_html__( 'Curso real', 'certificados' ) . '</strong></label><br>';
 		echo '<select id="certificados_request_course_id" name="certificados_course_id" required>';
@@ -374,8 +371,7 @@ final class Certificados_Admin {
 		echo '<input type="date" id="certificados_request_issue_date" name="certificados_issue_date" value="' . esc_attr( current_time( 'Y-m-d' ) ) . '" required></p>';
 		echo '<p><label for="certificados_request_message"><strong>' . esc_html__( 'Mensaje del certificado', 'certificados' ) . '</strong></label><br>';
 		echo '<textarea id="certificados_request_message" name="certificados_message" class="large-text" rows="4">' . esc_textarea( $this->get_default_certificate_message() ) . '</textarea></p>';
-		submit_button( __( 'Aprobar y crear certificado', 'certificados' ), 'primary', 'submit', false );
-		echo '</form>';
+		submit_button( __( 'Aprobar y crear certificado', 'certificados' ), 'primary', 'certificados_approve_request_submit', false );
 	}
 
 	/**
@@ -424,6 +420,38 @@ final class Certificados_Admin {
 		if ( ! get_post_meta( $post_id, '_certificados_code', true ) ) {
 			update_post_meta( $post_id, '_certificados_code', $this->generate_unique_code() );
 		}
+	}
+
+	/**
+	 * Saves a request approval from the native WordPress edit form.
+	 *
+	 * @param int $post_id Post ID.
+	 */
+	public function save_request( $post_id ) {
+		if ( empty( $_POST['certificados_approve_request_submit'] ) ) {
+			return;
+		}
+
+		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+			return;
+		}
+
+		if (
+			! isset( $_POST['certificados_approve_request_nonce'] )
+			|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['certificados_approve_request_nonce'] ) ), 'certificados_approve_request_' . $post_id )
+		) {
+			return;
+		}
+
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			return;
+		}
+
+		if ( get_post_meta( $post_id, '_certificados_request_certificate_id', true ) ) {
+			return;
+		}
+
+		$this->approve_request_from_post( $post_id );
 	}
 
 	/**
@@ -681,19 +709,10 @@ final class Certificados_Admin {
 
 	/**
 	 * Approves a customer request and creates the certificate.
+	 *
+	 * @param int $request_id Request post ID.
 	 */
-	public function approve_request() {
-		$request_id = isset( $_POST['request_id'] ) ? absint( wp_unslash( $_POST['request_id'] ) ) : 0;
-		if ( ! $request_id || ! current_user_can( 'edit_post', $request_id ) ) {
-			wp_die(
-				esc_html__( 'No tienes permiso para aprobar esta solicitud.', 'certificados' ),
-				esc_html__( 'Permiso denegado', 'certificados' ),
-				array( 'response' => 403 )
-			);
-		}
-
-		check_admin_referer( 'certificados_approve_request_' . $request_id, 'certificados_approve_request_nonce' );
-
+	private function approve_request_from_post( $request_id ) {
 		$user_id    = absint( get_post_meta( $request_id, '_certificados_request_user_id', true ) );
 		$course_id  = isset( $_POST['certificados_course_id'] ) ? absint( wp_unslash( $_POST['certificados_course_id'] ) ) : 0;
 		$issue_date = $this->sanitize_date( 'certificados_issue_date' );
@@ -737,15 +756,14 @@ final class Certificados_Admin {
 
 		update_post_meta( $request_id, '_certificados_request_status', 'approved' );
 		update_post_meta( $request_id, '_certificados_request_certificate_id', $certificate_id );
+		remove_action( 'save_post_' . Certificados_Post_Types::REQUEST_POST_TYPE, array( $this, 'save_request' ) );
 		wp_update_post(
 			array(
 				'ID'          => $request_id,
 				'post_status' => 'publish',
 			)
 		);
-
-		wp_safe_redirect( get_edit_post_link( $request_id, 'redirect' ) );
-		exit;
+		add_action( 'save_post_' . Certificados_Post_Types::REQUEST_POST_TYPE, array( $this, 'save_request' ) );
 	}
 
 	/**
