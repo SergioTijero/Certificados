@@ -16,6 +16,7 @@ Primera versión funcional en desarrollo. Incluye:
 - Búsqueda de clientes por AJAX para tiendas con muchos usuarios.
 - Shortcode compatible con Elementor para páginas de validación.
 - PDF en formato horizontal con marco, color de marca `#feb20b`, código QR y logotipo del sitio (con conversión dinámica de PNG indexados y fallback por defecto).
+- Plantilla de PDF tipo diploma inspirada en el certificado de The Homebrewer Peru, con mensaje editable por certificado o por asignación masiva.
 
 ## Instalación local
 
@@ -64,18 +65,18 @@ php tools/test-frontend-flow.php
 
 1. En el administrador de WordPress, entra a **Cursos y talleres** y crea un curso.
 2. En **Cursos y talleres > Certificados**, crea un certificado.
-3. Selecciona el curso, el cliente y la fecha de emisión.
+3. Selecciona el curso, el cliente, la fecha de emisión y ajusta el mensaje si hace falta.
 4. Publica el certificado.
 5. El cliente verá el certificado en **Mi cuenta > Certificados**.
 6. Desde esa vista podrá descargar el PDF o abrir la validación pública.
 
-El PDF se genera en formato horizontal (Landscape) e incluye los datos del participante, el curso, la fecha, el código de validación, la URL pública, un marco elegante con color de marca `#feb20b`, el logotipo del sitio (con conversión automática de imágenes no compatibles como PNGs indexados, GIFs o WebP gracias a PHP GD, y fallback al logotipo de *The Homebrewer Peru* si no hay uno configurado) y el código QR incrustado dentro del PDF para su validación rápida con QuickChart.
+El PDF se genera en formato horizontal (Landscape) con una plantilla tipo diploma: fondo oscuro, área central blanca, marco dorado `#feb20b`, banda honorífica, nombre del participante destacado, mensaje editable, fecha con formato “Lima 23 de MAYO del 2026”, logotipo de *The Homebrewer Peru* y código QR incrustado para validación rápida con QuickChart. El logotipo usa el logo configurado del tema o, si no hay uno, el fallback `https://thehomebrewerperu.com/wp-content/uploads/2019/12/Logo_thbp.png`.
 
 Las fechas del curso son referenciales y opcionales. Para cursos que se repiten cada mes, usa la fecha de emisión del certificado.
 
 ## Asignación masiva
 
-Entra a **Cursos y talleres > Asignar certificados** para seleccionar un curso, buscar clientes por nombre/correo y crear certificados para varios clientes a la vez.
+Entra a **Cursos y talleres > Asignar certificados** para seleccionar un curso, definir fecha y mensaje, buscar clientes por nombre/correo y crear certificados para varios clientes a la vez.
 
 ## Ruta de validación
 

@@ -163,8 +163,12 @@ final class Certificados_Admin {
 		$course_id  = absint( get_post_meta( $post->ID, '_certificados_course_id', true ) );
 		$user_id    = absint( get_post_meta( $post->ID, '_certificados_user_id', true ) );
 		$issue_date = get_post_meta( $post->ID, '_certificados_issue_date', true );
+		$message    = get_post_meta( $post->ID, '_certificados_message', true );
 		if ( ! $issue_date ) {
 			$issue_date = current_time( 'Y-m-d' );
+		}
+		if ( '' === $message ) {
+			$message = $this->get_default_certificate_message();
 		}
 		$code       = get_post_meta( $post->ID, '_certificados_code', true );
 		$courses    = get_posts(
@@ -198,6 +202,11 @@ final class Certificados_Admin {
 			<label for="certificados_issue_date"><strong><?php esc_html_e( 'Fecha de emisión', 'certificados' ); ?></strong></label><br>
 			<input type="date" id="certificados_issue_date" name="certificados_issue_date" value="<?php echo esc_attr( $issue_date ); ?>">
 		</p>
+		<p>
+			<label for="certificados_message"><strong><?php esc_html_e( 'Mensaje del certificado', 'certificados' ); ?></strong></label><br>
+			<textarea id="certificados_message" name="certificados_message" class="large-text" rows="4"><?php echo esc_textarea( $message ); ?></textarea>
+		</p>
+		<p class="description"><?php esc_html_e( 'Este texto se imprime en el PDF debajo del nombre del participante. Puedes ajustarlo por certificado.', 'certificados' ); ?></p>
 		<?php if ( $code ) : ?>
 			<?php $verification_url = Certificados_Frontend::get_verification_url( $code ); ?>
 			<p>
@@ -282,6 +291,13 @@ final class Certificados_Admin {
 						<td><input type="date" id="certificados_bulk_issue_date" name="certificados_issue_date" value="<?php echo esc_attr( current_time( 'Y-m-d' ) ); ?>"></td>
 					</tr>
 					<tr>
+						<th scope="row"><label for="certificados_bulk_message"><?php esc_html_e( 'Mensaje del certificado', 'certificados' ); ?></label></th>
+						<td>
+							<textarea id="certificados_bulk_message" name="certificados_message" class="large-text" rows="4"><?php echo esc_textarea( $this->get_default_certificate_message() ); ?></textarea>
+							<p class="description"><?php esc_html_e( 'Se usará para todos los certificados creados en esta asignación.', 'certificados' ); ?></p>
+						</td>
+					</tr>
+					<tr>
 						<th scope="row"><?php esc_html_e( 'Clientes', 'certificados' ); ?></th>
 						<td>
 							<?php $this->render_customer_search_control( 'certificados_user_ids', null, true ); ?>
@@ -323,6 +339,7 @@ final class Certificados_Admin {
 		$course_id  = isset( $_POST['certificados_course_id'] ) ? absint( wp_unslash( $_POST['certificados_course_id'] ) ) : 0;
 		$user_id    = isset( $_POST['certificados_user_id'] ) ? absint( wp_unslash( $_POST['certificados_user_id'] ) ) : 0;
 		$issue_date = $this->sanitize_date( 'certificados_issue_date' );
+		$message    = $this->sanitize_message( 'certificados_message' );
 
 		if ( Certificados_Post_Types::COURSE_POST_TYPE !== get_post_type( $course_id ) ) {
 			$course_id = 0;
@@ -335,6 +352,7 @@ final class Certificados_Admin {
 		update_post_meta( $post_id, '_certificados_course_id', $course_id );
 		update_post_meta( $post_id, '_certificados_user_id', $user_id );
 		update_post_meta( $post_id, '_certificados_issue_date', $issue_date );
+		update_post_meta( $post_id, '_certificados_message', $message );
 
 		if ( ! get_post_meta( $post_id, '_certificados_code', true ) ) {
 			update_post_meta( $post_id, '_certificados_code', $this->generate_unique_code() );
@@ -357,6 +375,7 @@ final class Certificados_Admin {
 
 		$course_id  = isset( $_POST['certificados_course_id'] ) ? absint( wp_unslash( $_POST['certificados_course_id'] ) ) : 0;
 		$issue_date = $this->sanitize_date( 'certificados_issue_date' );
+		$message    = $this->sanitize_message( 'certificados_message' );
 		$user_ids   = isset( $_POST['certificados_user_ids'] ) ? array_map( 'absint', (array) wp_unslash( $_POST['certificados_user_ids'] ) ) : array();
 
 		if ( Certificados_Post_Types::COURSE_POST_TYPE !== get_post_type( $course_id ) ) {
@@ -396,6 +415,7 @@ final class Certificados_Admin {
 			update_post_meta( $certificate_id, '_certificados_course_id', $course_id );
 			update_post_meta( $certificate_id, '_certificados_user_id', $user_id );
 			update_post_meta( $certificate_id, '_certificados_issue_date', $issue_date );
+			update_post_meta( $certificate_id, '_certificados_message', $message );
 			update_post_meta( $certificate_id, '_certificados_code', $this->generate_unique_code() );
 			$created++;
 		}
@@ -604,6 +624,27 @@ final class Certificados_Admin {
 		$value = isset( $_POST[ $key ] ) ? sanitize_key( wp_unslash( $_POST[ $key ] ) ) : $fallback;
 
 		return in_array( $value, $allowed, true ) ? $value : $fallback;
+	}
+
+	/**
+	 * Sanitizes a certificate message field.
+	 *
+	 * @param string $key Field key.
+	 * @return string
+	 */
+	private function sanitize_message( $key ) {
+		$value = isset( $_POST[ $key ] ) ? sanitize_textarea_field( wp_unslash( $_POST[ $key ] ) ) : '';
+
+		return '' !== trim( $value ) ? $value : $this->get_default_certificate_message();
+	}
+
+	/**
+	 * Returns the default certificate message.
+	 *
+	 * @return string
+	 */
+	private function get_default_certificate_message() {
+		return __( 'Quien culminó exitosamente el curso presencial de elaboración de CERVEZA ARTESANAL, teórico y práctico por 8 horas en la sede central de THE HOMEBREWER PERU.', 'certificados' );
 	}
 
 	/**

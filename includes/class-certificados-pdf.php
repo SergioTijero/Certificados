@@ -13,6 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Creates a lightweight PDF without external dependencies.
  */
 final class Certificados_PDF {
+	const DEFAULT_LOGO_URL = 'https://thehomebrewerperu.com/wp-content/uploads/2019/12/Logo_thbp.png';
+
 	/**
 	 * Sends a certificate PDF to the browser.
 	 *
@@ -52,12 +54,18 @@ final class Certificados_PDF {
 		$issue_date = get_post_meta( $certificate_id, '_certificados_issue_date', true );
 		$code       = get_post_meta( $certificate_id, '_certificados_code', true );
 		$mode       = get_post_meta( $course_id, '_certificados_mode', true );
+		$message    = get_post_meta( $certificate_id, '_certificados_message', true );
+		if ( '' === $message ) {
+			$message = self::get_default_message();
+		}
 
 		return array(
 			'participant'      => $user ? $user->display_name : __( 'Participante', 'certificados' ),
 			'course'           => $course_id ? get_the_title( $course_id ) : __( 'Curso o taller', 'certificados' ),
 			'mode'             => $mode ? $mode : __( 'virtual', 'certificados' ),
 			'issue_date'       => $issue_date ? $issue_date : current_time( 'Y-m-d' ),
+			'formatted_date'   => self::format_spanish_date( $issue_date ? $issue_date : current_time( 'Y-m-d' ) ),
+			'message'          => $message,
 			'code'             => $code,
 			'verification_url' => Certificados_Frontend::get_verification_url( $code ),
 			'site_name'        => function_exists( 'get_bloginfo' ) ? get_bloginfo( 'name' ) : __( 'Certificado', 'certificados' ),
@@ -75,12 +83,12 @@ final class Certificados_PDF {
 		$images = array();
 		$logo   = ! empty( $data['logo_url'] ) ? self::get_pdf_image_from_url( $data['logo_url'] ) : null;
 		if ( $logo ) {
-			$logo_box = self::fit_image_box( $logo['width'], $logo['height'], 100, 100 );
+			$logo_box = self::fit_image_box( $logo['width'], $logo['height'], 132, 132 );
 			$images[] = array(
 				'name'   => 'LOGO1',
 				'image'  => $logo,
-				'x'      => 396 - $logo_box['width'] / 2,
-				'y'      => 440 + ( 100 - $logo_box['height'] ) / 2,
+				'x'      => 590 + ( 132 - $logo_box['width'] ) / 2,
+				'y'      => 78 + ( 132 - $logo_box['height'] ) / 2,
 				'width'  => $logo_box['width'],
 				'height' => $logo_box['height'],
 			);
@@ -91,10 +99,10 @@ final class Certificados_PDF {
 			$images[] = array(
 				'name'   => 'QR1',
 				'image'  => $qr_image,
-				'x'      => 600,
-				'y'      => 65,
-				'width'  => 85,
-				'height' => 85,
+				'x'      => 90,
+				'y'      => 66,
+				'width'  => 64,
+				'height' => 64,
 			);
 		}
 
@@ -170,9 +178,15 @@ final class Certificados_PDF {
 	 * @return string
 	 */
 	private static function build_page_content( array $data, array $images ) {
-		$content  = "q\n0.996 0.698 0.043 RG\n4 w\n36 36 720 540 re S\nQ\n";
-		$content .= "q\n0.2 0.2 0.2 RG\n1 w\n48 48 696 516 re S\nQ\n";
-		$content .= "q\n0.996 0.698 0.043 rg\n276 375 240 2 re f\nQ\n";
+		$content  = "q\n0.035 0.032 0.029 rg\n0 0 792 612 re f\nQ\n";
+		$content .= "q\n0.996 0.698 0.043 RG\n5 w\n38 36 716 540 re S\nQ\n";
+		$content .= "q\n1 1 1 rg\n58 56 676 500 re f\nQ\n";
+		$content .= "q\n0.996 0.698 0.043 RG\n2 w\n70 68 652 476 re S\nQ\n";
+		$content .= "q\n0.09 0.08 0.07 RG\n1 w\n82 80 628 452 re S\nQ\n";
+		$content .= "q\n0.996 0.698 0.043 rg\n212 368 368 32 re f\nQ\n";
+		$content .= "q\n0.09 0.08 0.07 rg\n218 374 356 20 re f\nQ\n";
+		$content .= "q\n0.996 0.698 0.043 rg\n96 506 600 2 re f\nQ\n";
+		$content .= "q\n0.996 0.698 0.043 rg\n96 154 390 2 re f\nQ\n";
 
 		foreach ( $images as $image ) {
 			$content .= sprintf(
@@ -185,20 +199,22 @@ final class Certificados_PDF {
 			);
 		}
 
-		$content .= self::pdf_wrapped_centered_text( 'F2', 32, 48, 390, 696, 'CERTIFICADO', 25, 36, 1 );
-		$content .= self::pdf_wrapped_centered_text( 'F1', 12, 48, 345, 696, 'Se certifica que:', 50, 16, 1 );
-		$content .= self::pdf_wrapped_centered_text( 'F2', 28, 48, 295, 696, $data['participant'], 45, 34, 2 );
-		$content .= self::pdf_wrapped_centered_text( 'F1', 12, 48, 245, 696, 'participó satisfactoriamente en el:', 60, 16, 1 );
-		$content .= self::pdf_wrapped_centered_text( 'F2', 20, 48, 205, 696, $data['course'], 55, 24, 2 );
+		$content .= self::pdf_wrapped_centered_text_color( 'F2', 12, 116, 480, 560, 'CURSO DE ELABORACIÓN DE CERVEZA ARTESANAL', 60, 14, 1, 0.08, 0.08, 0.08 );
+		$content .= self::pdf_wrapped_centered_text_color( 'F2', 50, 98, 418, 596, 'CERTIFICADO', 18, 54, 1, 0.09, 0.08, 0.07 );
+		$content .= self::pdf_wrapped_centered_text_color( 'F2', 12, 218, 381, 356, '+ HONORÍFICO DE PARTICIPACIÓN +', 38, 14, 1, 1, 1, 1 );
+		$content .= self::pdf_wrapped_centered_text_color( 'F2', 11, 96, 333, 600, 'OTORGADO A:', 24, 13, 1, 0.09, 0.08, 0.07 );
+		$content .= self::pdf_wrapped_centered_text_color( 'F2', 28, 110, 286, 572, strtoupper( $data['participant'] ), 32, 32, 2, 0.86, 0.47, 0.04 );
+		$content .= self::pdf_wrapped_centered_text_color( 'F1', 13, 138, 238, 516, $data['message'], 78, 18, 4, 0.1, 0.1, 0.1 );
+		$content .= self::pdf_wrapped_centered_text_color( 'F1', 12, 130, 177, 344, 'Lima ' . $data['formatted_date'], 44, 15, 1, 0.1, 0.1, 0.1 );
 
-		// Metadata columns (Left column)
-		$content .= self::pdf_text( 'F1', 11, 80, 135, 'Modalidad: ' . ucfirst( $data['mode'] ) );
-		$content .= self::pdf_text( 'F1', 11, 80, 117, 'Fecha de emisión: ' . $data['issue_date'] );
-		$content .= self::pdf_text( 'F1', 11, 80, 99, 'Código de validación: ' . $data['code'] );
-		$content .= self::pdf_wrapped_text( 'F1', 8, 80, 80, 'Verificación: ' . $data['verification_url'], 90, 10, 2 );
+		$content .= self::pdf_text_color( 'F1', 9, 170, 116, 'Código: ' . $data['code'], 0.1, 0.1, 0.1 );
+		$content .= self::pdf_wrapped_text_color( 'F1', 7, 170, 101, $data['verification_url'], 42, 9, 2, 0.1, 0.1, 0.1 );
+
+		$content .= self::pdf_text_color( 'F1', 9, 372, 117, 'THE HOMEBREWER PERU', 0.1, 0.1, 0.1 );
+		$content .= self::pdf_text_color( 'F1', 8, 387, 102, 'Dirección académica', 0.1, 0.1, 0.1 );
 
 		if ( self::has_pdf_image( $images, 'QR1' ) ) {
-			$content .= self::pdf_wrapped_centered_text( 'F1', 9, 575, 155, 135, 'Escanea para validar', 25, 12, 1 );
+			$content .= self::pdf_wrapped_centered_text_color( 'F1', 7, 70, 137, 104, 'Escanea para validar', 24, 9, 1, 0.1, 0.1, 0.1 );
 		}
 
 		return $content;
@@ -215,8 +231,28 @@ final class Certificados_PDF {
 	 * @return string
 	 */
 	private static function pdf_text( $font, $size, $x, $y, $text ) {
+		return self::pdf_text_color( $font, $size, $x, $y, $text, 0, 0, 0 );
+	}
+
+	/**
+	 * Builds one colored PDF text operation.
+	 *
+	 * @param string $font Font resource name.
+	 * @param int    $size Font size.
+	 * @param int    $x X coordinate.
+	 * @param int    $y Y coordinate.
+	 * @param string $text Text.
+	 * @param float  $r Red channel.
+	 * @param float  $g Green channel.
+	 * @param float  $b Blue channel.
+	 * @return string
+	 */
+	private static function pdf_text_color( $font, $size, $x, $y, $text, $r, $g, $b ) {
 		return sprintf(
-			"BT\n/%s %d Tf\n%d %d Td\n(%s) Tj\nET\n",
+			"q\n%.3F %.3F %.3F rg\nBT\n/%s %d Tf\n%d %d Td\n(%s) Tj\nET\nQ\n",
+			$r,
+			$g,
+			$b,
 			$font,
 			$size,
 			$x,
@@ -239,9 +275,29 @@ final class Certificados_PDF {
 	 * @return string
 	 */
 	private static function pdf_wrapped_text( $font, $size, $x, $y, $text, $max_chars, $line_height, $max_lines ) {
+		return self::pdf_wrapped_text_color( $font, $size, $x, $y, $text, $max_chars, $line_height, $max_lines, 0, 0, 0 );
+	}
+
+	/**
+	 * Builds colored wrapped PDF text operations.
+	 *
+	 * @param string $font Font resource name.
+	 * @param int    $size Font size.
+	 * @param int    $x X coordinate.
+	 * @param int    $y Y coordinate.
+	 * @param string $text Text.
+	 * @param int    $max_chars Max characters per line.
+	 * @param int    $line_height Distance between lines.
+	 * @param int    $max_lines Max number of lines.
+	 * @param float  $r Red channel.
+	 * @param float  $g Green channel.
+	 * @param float  $b Blue channel.
+	 * @return string
+	 */
+	private static function pdf_wrapped_text_color( $font, $size, $x, $y, $text, $max_chars, $line_height, $max_lines, $r, $g, $b ) {
 		$content = '';
 		foreach ( self::wrap_pdf_text( $text, $max_chars, $max_lines ) as $index => $line ) {
-			$content .= self::pdf_text( $font, $size, $x, $y - ( $index * $line_height ), $line );
+			$content .= self::pdf_text_color( $font, $size, $x, $y - ( $index * $line_height ), $line, $r, $g, $b );
 		}
 
 		return $content;
@@ -262,13 +318,34 @@ final class Certificados_PDF {
 	 * @return string
 	 */
 	private static function pdf_wrapped_centered_text( $font, $size, $x, $y, $width, $text, $max_chars, $line_height, $max_lines ) {
+		return self::pdf_wrapped_centered_text_color( $font, $size, $x, $y, $width, $text, $max_chars, $line_height, $max_lines, 0, 0, 0 );
+	}
+
+	/**
+	 * Builds colored centered wrapped PDF text operations.
+	 *
+	 * @param string $font Font resource name.
+	 * @param int    $size Font size.
+	 * @param int    $x X coordinate for the text box.
+	 * @param int    $y Y coordinate.
+	 * @param int    $width Width of the text box.
+	 * @param string $text Text.
+	 * @param int    $max_chars Max characters per line.
+	 * @param int    $line_height Distance between lines.
+	 * @param int    $max_lines Max number of lines.
+	 * @param float  $r Red channel.
+	 * @param float  $g Green channel.
+	 * @param float  $b Blue channel.
+	 * @return string
+	 */
+	private static function pdf_wrapped_centered_text_color( $font, $size, $x, $y, $width, $text, $max_chars, $line_height, $max_lines, $r, $g, $b ) {
 		$content = '';
 		$factor  = ( 'F2' === $font && strtoupper( $text ) === $text ) ? 0.62 : 0.48;
 
 		foreach ( self::wrap_pdf_text( $text, $max_chars, $max_lines ) as $index => $line ) {
 			$estimated_width = strlen( self::escape_pdf_text( $line ) ) * $size * $factor;
 			$line_x          = $x + max( 0, ( $width - $estimated_width ) / 2 );
-			$content        .= self::pdf_text( $font, $size, (int) $line_x, $y - ( $index * $line_height ), $line );
+			$content        .= self::pdf_text_color( $font, $size, (int) $line_x, $y - ( $index * $line_height ), $line, $r, $g, $b );
 		}
 
 		return $content;
@@ -623,10 +700,51 @@ final class Certificados_PDF {
 		}
 
 		if ( empty( $logo_url ) ) {
-			$logo_url = 'https://thehomebrewerperu.com/wp-content/uploads/2019/12/Logo_thbp.png';
+			$logo_url = self::DEFAULT_LOGO_URL;
 		}
 
 		return $logo_url;
+	}
+
+	/**
+	 * Returns the default certificate message.
+	 *
+	 * @return string
+	 */
+	private static function get_default_message() {
+		return __( 'Quien culminó exitosamente el curso presencial de elaboración de CERVEZA ARTESANAL, teórico y práctico por 8 horas en la sede central de THE HOMEBREWER PERU.', 'certificados' );
+	}
+
+	/**
+	 * Formats a date like the reference certificate.
+	 *
+	 * @param string $date Date in Y-m-d format.
+	 * @return string
+	 */
+	private static function format_spanish_date( $date ) {
+		if ( ! preg_match( '/^(\d{4})-(\d{2})-(\d{2})$/', (string) $date, $matches ) ) {
+			return $date;
+		}
+
+		$months = array(
+			'01' => 'ENERO',
+			'02' => 'FEBRERO',
+			'03' => 'MARZO',
+			'04' => 'ABRIL',
+			'05' => 'MAYO',
+			'06' => 'JUNIO',
+			'07' => 'JULIO',
+			'08' => 'AGOSTO',
+			'09' => 'SETIEMBRE',
+			'10' => 'OCTUBRE',
+			'11' => 'NOVIEMBRE',
+			'12' => 'DICIEMBRE',
+		);
+
+		$day   = (string) absint( $matches[3] );
+		$month = isset( $months[ $matches[2] ] ) ? $months[ $matches[2] ] : $matches[2];
+
+		return $day . ' de ' . $month . ' del ' . $matches[1];
 	}
 
 	/**

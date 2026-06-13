@@ -491,7 +491,7 @@ CSS;
 		);
 
 		$code = $atts['codigo'] ? $atts['codigo'] : $atts['code'];
-		if ( ! $code ) {
+		if ( ! $code && function_exists( 'get_query_var' ) ) {
 			$code = get_query_var( self::QUERY_VAR );
 		}
 		if ( ! $code && isset( $_GET['certificado'] ) ) {
