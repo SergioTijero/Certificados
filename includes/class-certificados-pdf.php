@@ -14,6 +14,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Certificados_PDF {
 	const DEFAULT_LOGO_URL = 'https://thehomebrewerperu.com/wp-content/uploads/2019/12/Logo_thbp.png';
+	const PAGE_WIDTH       = 792;
+	const PAGE_HEIGHT      = 569;
 
 	/**
 	 * Sends a certificate PDF to the browser.
@@ -81,16 +83,28 @@ final class Certificados_PDF {
 	 */
 	private static function build_pdf( array $data ) {
 		$images = array();
-		$logo   = ! empty( $data['logo_url'] ) ? self::get_pdf_image_from_url( $data['logo_url'] ) : null;
-		if ( $logo ) {
-			$logo_box = self::fit_image_box( $logo['width'], $logo['height'], 132, 132 );
+		$background = self::get_pdf_image_from_file( CERTIFICADOS_PLUGIN_DIR . 'assets/certificate-background.png' );
+		if ( $background ) {
 			$images[] = array(
-				'name'   => 'LOGO1',
-				'image'  => $logo,
-				'x'      => 590 + ( 132 - $logo_box['width'] ) / 2,
-				'y'      => 78 + ( 132 - $logo_box['height'] ) / 2,
-				'width'  => $logo_box['width'],
-				'height' => $logo_box['height'],
+				'name'   => 'BG1',
+				'image'  => $background,
+				'x'      => 0,
+				'y'      => 0,
+				'width'  => self::PAGE_WIDTH,
+				'height' => self::PAGE_HEIGHT,
+			);
+		}
+
+		$title = self::get_pdf_image_from_file( CERTIFICADOS_PLUGIN_DIR . 'assets/certificate-title.png' );
+		if ( $title ) {
+			$title_box = self::fit_image_box( $title['width'], $title['height'], 500, 126 );
+			$images[]  = array(
+				'name'   => 'TITLE1',
+				'image'  => $title,
+				'x'      => ( self::PAGE_WIDTH - $title_box['width'] ) / 2,
+				'y'      => 332,
+				'width'  => $title_box['width'],
+				'height' => $title_box['height'],
 			);
 		}
 
@@ -99,10 +113,10 @@ final class Certificados_PDF {
 			$images[] = array(
 				'name'   => 'QR1',
 				'image'  => $qr_image,
-				'x'      => 90,
-				'y'      => 66,
-				'width'  => 64,
-				'height' => 64,
+				'x'      => 660,
+				'y'      => 420,
+				'width'  => 50,
+				'height' => 50,
 			);
 		}
 
@@ -132,7 +146,7 @@ final class Certificados_PDF {
 			$resources .= ' /XObject <<' . $xobjects . ' >>';
 		}
 		$resources .= ' >>';
-		$objects[2] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 792 612] /Resources ' . $resources . ' /Contents 6 0 R >>';
+		$objects[2] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' . self::PAGE_WIDTH . ' ' . self::PAGE_HEIGHT . '] /Resources ' . $resources . ' /Contents 6 0 R >>';
 
 		$pdf     = "%PDF-1.4\n";
 		$offsets = array( 0 );
@@ -178,15 +192,7 @@ final class Certificados_PDF {
 	 * @return string
 	 */
 	private static function build_page_content( array $data, array $images ) {
-		$content  = "q\n0.035 0.032 0.029 rg\n0 0 792 612 re f\nQ\n";
-		$content .= "q\n0.996 0.698 0.043 RG\n5 w\n38 36 716 540 re S\nQ\n";
-		$content .= "q\n1 1 1 rg\n58 56 676 500 re f\nQ\n";
-		$content .= "q\n0.996 0.698 0.043 RG\n2 w\n70 68 652 476 re S\nQ\n";
-		$content .= "q\n0.09 0.08 0.07 RG\n1 w\n82 80 628 452 re S\nQ\n";
-		$content .= "q\n0.996 0.698 0.043 rg\n212 368 368 32 re f\nQ\n";
-		$content .= "q\n0.09 0.08 0.07 rg\n218 374 356 20 re f\nQ\n";
-		$content .= "q\n0.996 0.698 0.043 rg\n96 506 600 2 re f\nQ\n";
-		$content .= "q\n0.996 0.698 0.043 rg\n96 154 390 2 re f\nQ\n";
+		$content = '';
 
 		foreach ( $images as $image ) {
 			$content .= sprintf(
@@ -199,22 +205,14 @@ final class Certificados_PDF {
 			);
 		}
 
-		$content .= self::pdf_wrapped_centered_text_color( 'F2', 12, 116, 480, 560, 'CURSO DE ELABORACIÓN DE CERVEZA ARTESANAL', 60, 14, 1, 0.08, 0.08, 0.08 );
-		$content .= self::pdf_wrapped_centered_text_color( 'F2', 50, 98, 418, 596, 'CERTIFICADO', 18, 54, 1, 0.09, 0.08, 0.07 );
-		$content .= self::pdf_wrapped_centered_text_color( 'F2', 12, 218, 381, 356, '+ HONORÍFICO DE PARTICIPACIÓN +', 38, 14, 1, 1, 1, 1 );
-		$content .= self::pdf_wrapped_centered_text_color( 'F2', 11, 96, 333, 600, 'OTORGADO A:', 24, 13, 1, 0.09, 0.08, 0.07 );
-		$content .= self::pdf_wrapped_centered_text_color( 'F2', 28, 110, 286, 572, strtoupper( $data['participant'] ), 32, 32, 2, 0.86, 0.47, 0.04 );
-		$content .= self::pdf_wrapped_centered_text_color( 'F1', 13, 138, 238, 516, $data['message'], 78, 18, 4, 0.1, 0.1, 0.1 );
-		$content .= self::pdf_reference_date_line( isset( $data['issue_date'] ) ? $data['issue_date'] : '', isset( $data['formatted_date'] ) ? $data['formatted_date'] : '', 396, 170 );
+		$content .= self::pdf_wrapped_centered_text_color( 'F2', 29, 130, 286, 532, strtoupper( $data['participant'] ), 34, 32, 2, 0.996, 0.698, 0.043 );
+		$content .= self::pdf_wrapped_centered_text_color( 'F2', 13, 164, 238, 464, $data['message'], 64, 17, 4, 0.08, 0.08, 0.08 );
+		$content .= self::pdf_reference_date_line( isset( $data['issue_date'] ) ? $data['issue_date'] : '', isset( $data['formatted_date'] ) ? $data['formatted_date'] : '', 396, 178 );
 
-		$content .= self::pdf_text_color( 'F1', 9, 170, 116, 'Código: ' . $data['code'], 0.1, 0.1, 0.1 );
-		$content .= self::pdf_wrapped_text_color( 'F1', 7, 170, 101, $data['verification_url'], 42, 9, 2, 0.1, 0.1, 0.1 );
-
-		$content .= self::pdf_text_color( 'F1', 9, 372, 117, 'THE HOMEBREWER PERU', 0.1, 0.1, 0.1 );
-		$content .= self::pdf_text_color( 'F1', 8, 387, 102, 'Dirección académica', 0.1, 0.1, 0.1 );
+		$content .= self::pdf_text_color( 'F1', 7, 650, 407, 'Código: ' . $data['code'], 0.08, 0.08, 0.08 );
 
 		if ( self::has_pdf_image( $images, 'QR1' ) ) {
-			$content .= self::pdf_wrapped_centered_text_color( 'F1', 7, 70, 137, 104, 'Escanea para validar', 24, 9, 1, 0.1, 0.1, 0.1 );
+			$content .= self::pdf_wrapped_centered_text_color( 'F1', 6, 640, 479, 90, 'Escanea para validar', 24, 8, 1, 0.08, 0.08, 0.08 );
 		}
 
 		return $content;
@@ -490,6 +488,25 @@ final class Certificados_PDF {
 		}
 
 		return self::image_to_pdf_streams( wp_remote_retrieve_body( $response ) );
+	}
+
+	/**
+	 * Reads and converts a local image into PDF image streams.
+	 *
+	 * @param string $path Local image path.
+	 * @return array|null
+	 */
+	private static function get_pdf_image_from_file( $path ) {
+		if ( ! is_readable( $path ) ) {
+			return null;
+		}
+
+		$bytes = file_get_contents( $path );
+		if ( false === $bytes ) {
+			return null;
+		}
+
+		return self::image_to_pdf_streams( $bytes );
 	}
 
 	/**

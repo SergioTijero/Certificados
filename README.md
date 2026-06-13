@@ -16,7 +16,7 @@ Primera versión funcional en desarrollo. Incluye:
 - Búsqueda de clientes por AJAX para tiendas con muchos usuarios.
 - Shortcode compatible con Elementor para páginas de validación.
 - PDF en formato horizontal con marco, color de marca `#feb20b`, código QR y logotipo del sitio (con conversión dinámica de PNG indexados y fallback por defecto).
-- Plantilla de PDF tipo diploma inspirada en el certificado de The Homebrewer Peru, con mensaje editable por certificado o por asignación masiva.
+- Plantilla de PDF tipo diploma con fondo gráfico real de The Homebrewer Peru, mensaje editable por certificado o por asignación masiva y espacio reservado para firmas.
 - Solicitud de certificados desde “Mi cuenta” con bandeja de aprobación manual en WordPress.
 
 ## Instalación local
@@ -71,7 +71,7 @@ php tools/test-frontend-flow.php
 5. El cliente verá el certificado en **Mi cuenta > Certificados**.
 6. Desde esa vista podrá descargar el PDF o abrir la validación pública.
 
-El PDF se genera en formato horizontal (Landscape) con una plantilla tipo diploma: fondo oscuro, área central blanca, marco dorado `#feb20b`, banda honorífica, nombre del participante destacado, mensaje editable, fecha con formato “Lima 23 de MAYO del 2026”, logotipo de *The Homebrewer Peru* y código QR incrustado para validación rápida con QuickChart. El logotipo usa el logo configurado del tema o, si no hay uno, el fallback `https://thehomebrewerperu.com/wp-content/uploads/2019/12/Logo_thbp.png`.
+El PDF se genera en formato horizontal (Landscape) usando los assets gráficos incluidos en `assets/certificate-background.png` y `assets/certificate-title.png`. Sobre esa plantilla se colocan dinámicamente el nombre del participante, mensaje editable, fecha con formato “Lima 23 de MAYO del 2026”, código de validación y QR. La zona inferior central queda libre para agregar próximamente campos de firma y firma.
 
 Las fechas del curso son referenciales y opcionales. Para cursos que se repiten cada mes, usa la fecha de emisión del certificado.
 
