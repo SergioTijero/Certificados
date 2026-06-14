@@ -114,7 +114,7 @@ final class Certificados_PDF {
 				'name'   => 'QR1',
 				'image'  => $qr_image,
 				'x'      => 660,
-				'y'      => 420,
+				'y'      => 390,
 				'width'  => 50,
 				'height' => 50,
 			);
@@ -210,10 +210,11 @@ final class Certificados_PDF {
 		$content .= self::pdf_wrapped_centered_text_color( 'F2', 12, 196, 184, 400, $data['message'], 56, 15, 4, 0.08, 0.08, 0.08 );
 		$content .= self::pdf_reference_date_line( isset( $data['issue_date'] ) ? $data['issue_date'] : '', isset( $data['formatted_date'] ) ? $data['formatted_date'] : '', 396, 116 );
 
-		$content .= self::pdf_text_color( 'F1', 7, 650, 407, 'Código: ' . $data['code'], 0.08, 0.08, 0.08 );
+		$content .= self::pdf_text_color( 'F1', 7, 650, 378, 'Código:', 0.08, 0.08, 0.08 );
+		$content .= self::pdf_wrapped_text_color( 'F1', 7, 650, 368, $data['code'], 16, 8, 2, 0.08, 0.08, 0.08 );
 
 		if ( self::has_pdf_image( $images, 'QR1' ) ) {
-			$content .= self::pdf_wrapped_centered_text_color( 'F1', 6, 640, 479, 90, 'Escanea para validar', 24, 8, 1, 0.08, 0.08, 0.08 );
+			$content .= self::pdf_wrapped_centered_text_color( 'F1', 6, 640, 449, 90, 'Escanea para validar', 24, 8, 1, 0.08, 0.08, 0.08 );
 		}
 
 		return $content;
