@@ -606,18 +606,10 @@ CSS;
 	 * Renders a dismissible notice about the certificate account name.
 	 */
 	private function render_account_name_notice() {
-		$name = Certificados_PDF::get_user_certificate_name( get_current_user_id() );
-
 		echo '<div class="certificados-account-alert" data-certificados-name-notice>';
 		echo '<div>';
 		echo '<strong>' . esc_html__( 'Revisa tu nombre antes de solicitar el certificado', 'certificados' ) . '</strong>';
-		echo '<p>' . esc_html(
-			sprintf(
-				/* translators: %s: account name used on certificates. */
-				__( 'El certificado se creará con el nombre que aparece en tu cuenta: %s. Verifica que esté bien escrito e incluya tus 2 nombres y apellidos si corresponde antes de solicitarlo.', 'certificados' ),
-				$name
-			)
-		) . '</p>';
+		echo '<p>' . esc_html__( 'El certificado se emitirá con el nombre registrado en tu cuenta, por favor, verifica que esté correctamente escrito, incluyendo tildes, mayúsculas, nombres y apellidos completos antes de realizar la solicitud.', 'certificados' ) . '</p>';
 		echo '</div>';
 		echo '<button type="button" aria-label="' . esc_attr__( 'Cerrar aviso', 'certificados' ) . '" onclick="this.closest(\'.certificados-account-alert\').remove();try{window.localStorage.setItem(\'certificadosNameNoticeClosed\',\'1\');}catch(e){}">&times;</button>';
 		echo '</div>';
@@ -658,7 +650,7 @@ CSS;
 		echo '<option value="other">' . esc_html__( 'OTRO', 'certificados' ) . '</option>';
 		echo '</select></p>';
 		echo '<p><label for="certificados_request_details">' . esc_html__( 'Detalles adicionales', 'certificados' ) . '</label><br>';
-		echo '<textarea id="certificados_request_details" name="certificados_request_details" placeholder="' . esc_attr__( 'Cuéntanos si el curso fue antiguo, si no aparece en la lista o si necesitas especificar algo.', 'certificados' ) . '"></textarea></p>';
+		echo '<textarea id="certificados_request_details" name="certificados_request_details" placeholder="' . esc_attr__( 'Especifica el mes y año en que realizaste el curso, e incluye cualquier dato adicional que facilite la validación de tu certificado.', 'certificados' ) . '"></textarea></p>';
 		echo '<input type="hidden" name="certificados_request_action" value="request_certificate">';
 		wp_nonce_field( 'certificados_request_certificate', 'certificados_request_nonce' );
 		echo '<p><button type="submit" class="button">' . esc_html__( 'Enviar solicitud', 'certificados' ) . '</button></p>';

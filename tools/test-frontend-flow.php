@@ -218,7 +218,7 @@ $html = ob_get_clean();
 
 certificados_frontend_test_assert( false !== strpos( $html, 'Mis certificados' ), 'account section title is rendered' );
 certificados_frontend_test_assert( false !== strpos( $html, 'Revisa tu nombre antes de solicitar el certificado' ), 'account certificate name notice is rendered' );
-certificados_frontend_test_assert( false !== strpos( $html, 'El certificado se creará con el nombre que aparece en tu cuenta: Ana Cliente.' ), 'account certificate name notice includes account name' );
+certificados_frontend_test_assert( false !== strpos( $html, 'El certificado se emitirá con el nombre registrado en tu cuenta' ), 'account certificate name notice includes requested copy' );
 certificados_frontend_test_assert( false !== strpos( $html, 'Solicitar certificado' ), 'certificate request button is rendered' );
 certificados_frontend_test_assert( false !== strpos( $html, 'certificados_request_action' ), 'certificate request form is rendered' );
 certificados_frontend_test_assert( false !== strpos( $html, 'certificados_request_course_id' ), 'certificate request course selector is rendered' );
