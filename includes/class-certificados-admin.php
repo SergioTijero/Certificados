@@ -334,6 +334,7 @@ final class Certificados_Admin {
 		$email          = get_post_meta( $post->ID, '_certificados_request_email', true );
 		$requested      = get_post_meta( $post->ID, '_certificados_request_course', true );
 		$requested_id   = absint( get_post_meta( $post->ID, '_certificados_request_course_id', true ) );
+		$details        = get_post_meta( $post->ID, '_certificados_request_details', true );
 		$status         = get_post_meta( $post->ID, '_certificados_request_status', true );
 		$certificate_id = absint( get_post_meta( $post->ID, '_certificados_request_certificate_id', true ) );
 		$courses        = get_posts(
@@ -350,6 +351,7 @@ final class Certificados_Admin {
 		echo '<tr><th>' . esc_html__( 'Cliente', 'certificados' ) . '</th><td>' . esc_html( $full_name ) . ' <code>' . esc_html( $email ) . '</code></td></tr>';
 		echo '<tr><th>' . esc_html__( 'Usuario', 'certificados' ) . '</th><td>' . ( $user_id ? esc_html( '#' . $user_id ) : '&mdash;' ) . '</td></tr>';
 		echo '<tr><th>' . esc_html__( 'Curso indicado', 'certificados' ) . '</th><td>' . esc_html( $requested ) . '</td></tr>';
+		echo '<tr><th>' . esc_html__( 'Detalles adicionales', 'certificados' ) . '</th><td>' . ( $details ? nl2br( esc_html( $details ) ) : '&mdash;' ) . '</td></tr>';
 		echo '<tr><th>' . esc_html__( 'Estado', 'certificados' ) . '</th><td><strong>' . esc_html( $status ? $status : __( 'pending', 'certificados' ) ) . '</strong></td></tr>';
 		echo '</table>';
 

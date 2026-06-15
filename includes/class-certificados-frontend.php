@@ -392,13 +392,18 @@ final class Certificados_Frontend {
 }
 .certificados-request-form input[type="text"],
 .certificados-request-form input[type="email"],
-.certificados-request-form select {
+.certificados-request-form select,
+.certificados-request-form textarea {
 	border: 1.5px solid rgba(17, 17, 17, 0.25);
 	border-radius: 6px;
 	box-sizing: border-box;
 	max-width: 520px;
 	padding: 10px 12px;
 	width: 100%;
+}
+.certificados-request-form textarea {
+	min-height: 96px;
+	resize: vertical;
 }
 .certificados-request-form input[readonly] {
 	background: #f6f3eb;
@@ -407,7 +412,8 @@ final class Certificados_Frontend {
 }
 .certificados-request-form input[type="text"]:focus,
 .certificados-request-form input[type="email"]:focus,
-.certificados-request-form select:focus {
+.certificados-request-form select:focus,
+.certificados-request-form textarea:focus {
 	border-color: #feb20b;
 	box-shadow: 0 0 0 3px rgba(254, 178, 11, 0.15);
 	outline: none;
@@ -531,8 +537,15 @@ CSS;
 		$user      = get_userdata( $user_id );
 		$full_name = Certificados_PDF::get_user_certificate_name( $user_id );
 		$email     = isset( $_POST['certificados_request_email'] ) ? sanitize_email( wp_unslash( $_POST['certificados_request_email'] ) ) : '';
-		$course_id = isset( $_POST['certificados_request_course_id'] ) ? absint( wp_unslash( $_POST['certificados_request_course_id'] ) ) : 0;
-		$course    = $course_id && Certificados_Post_Types::COURSE_POST_TYPE === get_post_type( $course_id ) ? get_the_title( $course_id ) : '';
+		$course_raw = isset( $_POST['certificados_request_course_id'] ) ? sanitize_text_field( wp_unslash( $_POST['certificados_request_course_id'] ) ) : '';
+		$course_id  = absint( $course_raw );
+		$course     = $course_id && Certificados_Post_Types::COURSE_POST_TYPE === get_post_type( $course_id ) ? get_the_title( $course_id ) : '';
+		$details    = isset( $_POST['certificados_request_details'] ) ? sanitize_textarea_field( wp_unslash( $_POST['certificados_request_details'] ) ) : '';
+
+		if ( 'other' === $course_raw ) {
+			$course_id = 0;
+			$course    = __( 'Otro', 'certificados' );
+		}
 
 		if ( ! $email && $user ) {
 			$email = $user->user_email;
@@ -566,6 +579,7 @@ CSS;
 		update_post_meta( $request_id, '_certificados_request_email', $email );
 		update_post_meta( $request_id, '_certificados_request_course_id', $course_id );
 		update_post_meta( $request_id, '_certificados_request_course', $course );
+		update_post_meta( $request_id, '_certificados_request_details', $details );
 		update_post_meta( $request_id, '_certificados_request_status', 'pending' );
 
 		wp_safe_redirect( add_query_arg( 'certificados_solicitud', 'ok', wc_get_account_endpoint_url( self::ACCOUNT_ENDPOINT ) ) );
@@ -641,7 +655,10 @@ CSS;
 		foreach ( $courses as $course ) {
 			echo '<option value="' . esc_attr( $course->ID ) . '">' . esc_html( $course->post_title ) . '</option>';
 		}
+		echo '<option value="other">' . esc_html__( 'OTRO', 'certificados' ) . '</option>';
 		echo '</select></p>';
+		echo '<p><label for="certificados_request_details">' . esc_html__( 'Detalles adicionales', 'certificados' ) . '</label><br>';
+		echo '<textarea id="certificados_request_details" name="certificados_request_details" placeholder="' . esc_attr__( 'Cuéntanos si el curso fue antiguo, si no aparece en la lista o si necesitas especificar algo.', 'certificados' ) . '"></textarea></p>';
 		echo '<input type="hidden" name="certificados_request_action" value="request_certificate">';
 		wp_nonce_field( 'certificados_request_certificate', 'certificados_request_nonce' );
 		echo '<p><button type="submit" class="button">' . esc_html__( 'Enviar solicitud', 'certificados' ) . '</button></p>';
