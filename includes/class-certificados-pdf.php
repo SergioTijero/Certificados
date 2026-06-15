@@ -52,7 +52,6 @@ final class Certificados_PDF {
 	public static function get_certificate_data( $certificate_id ) {
 		$course_id  = absint( get_post_meta( $certificate_id, '_certificados_course_id', true ) );
 		$user_id    = absint( get_post_meta( $certificate_id, '_certificados_user_id', true ) );
-		$user       = get_userdata( $user_id );
 		$issue_date = get_post_meta( $certificate_id, '_certificados_issue_date', true );
 		$code       = get_post_meta( $certificate_id, '_certificados_code', true );
 		$mode       = get_post_meta( $course_id, '_certificados_mode', true );
@@ -62,7 +61,7 @@ final class Certificados_PDF {
 		}
 
 		return array(
-			'participant'      => $user ? $user->display_name : __( 'Participante', 'certificados' ),
+			'participant'      => self::get_user_certificate_name( $user_id ),
 			'course'           => $course_id ? get_the_title( $course_id ) : __( 'Curso o taller', 'certificados' ),
 			'mode'             => $mode ? $mode : __( 'virtual', 'certificados' ),
 			'issue_date'       => $issue_date ? $issue_date : current_time( 'Y-m-d' ),
@@ -73,6 +72,26 @@ final class Certificados_PDF {
 			'site_name'        => function_exists( 'get_bloginfo' ) ? get_bloginfo( 'name' ) : __( 'Certificado', 'certificados' ),
 			'logo_url'         => self::get_site_logo_url(),
 		);
+	}
+
+	/**
+	 * Returns the account name used on certificates.
+	 *
+	 * @param int $user_id User ID.
+	 * @return string
+	 */
+	public static function get_user_certificate_name( $user_id ) {
+		$user_id = absint( $user_id );
+		$user    = $user_id ? get_userdata( $user_id ) : false;
+		if ( ! $user ) {
+			return __( 'Participante', 'certificados' );
+		}
+
+		$first_name = trim( (string) get_user_meta( $user_id, 'first_name', true ) );
+		$last_name  = trim( (string) get_user_meta( $user_id, 'last_name', true ) );
+		$full_name  = trim( $first_name . ' ' . $last_name );
+
+		return $full_name ? $full_name : $user->display_name;
 	}
 
 	/**

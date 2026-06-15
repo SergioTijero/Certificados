@@ -499,7 +499,7 @@ final class Certificados_Admin {
 						/* translators: 1: course title, 2: customer name. */
 						__( '%1$s - %2$s', 'certificados' ),
 						get_the_title( $course_id ),
-						$user->display_name
+						Certificados_PDF::get_user_certificate_name( $user_id )
 					),
 				)
 			);
@@ -736,7 +736,7 @@ final class Certificados_Admin {
 					/* translators: 1: course title, 2: customer name. */
 					__( '%1$s - %2$s', 'certificados' ),
 					get_the_title( $course_id ),
-					$user->display_name
+					Certificados_PDF::get_user_certificate_name( $user_id )
 				),
 			)
 		);

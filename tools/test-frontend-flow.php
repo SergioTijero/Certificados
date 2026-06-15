@@ -49,6 +49,8 @@ $GLOBALS['certificados_frontend_test'] = array(
 			'ID'           => 7,
 			'display_name' => 'Ana Cliente',
 			'user_email'   => 'ana@example.test',
+			'first_name'   => 'Ana',
+			'last_name'    => 'Cliente',
 		),
 	),
 );
@@ -137,6 +139,12 @@ function get_userdata( $user_id ) {
 		: false;
 }
 
+function get_user_meta( $user_id, $key, $single = false ) {
+	return isset( $GLOBALS['certificados_frontend_test']['users'][ $user_id ][ $key ] )
+		? $GLOBALS['certificados_frontend_test']['users'][ $user_id ][ $key ]
+		: '';
+}
+
 function get_the_title( $post_id ) {
 	if ( is_object( $post_id ) && isset( $post_id->ID ) ) {
 		$post_id = $post_id->ID;
@@ -209,6 +217,8 @@ $frontend->render_account_certificates();
 $html = ob_get_clean();
 
 certificados_frontend_test_assert( false !== strpos( $html, 'Mis certificados' ), 'account section title is rendered' );
+certificados_frontend_test_assert( false !== strpos( $html, 'Revisa tu nombre antes de solicitar el certificado' ), 'account certificate name notice is rendered' );
+certificados_frontend_test_assert( false !== strpos( $html, 'El certificado se creará con el nombre que aparece en tu cuenta: Ana Cliente.' ), 'account certificate name notice includes account name' );
 certificados_frontend_test_assert( false !== strpos( $html, 'Solicitar certificado' ), 'certificate request button is rendered' );
 certificados_frontend_test_assert( false !== strpos( $html, 'certificados_request_action' ), 'certificate request form is rendered' );
 certificados_frontend_test_assert( false !== strpos( $html, 'certificados_request_course_id' ), 'certificate request course selector is rendered' );

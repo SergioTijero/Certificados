@@ -340,6 +340,39 @@ final class Certificados_Frontend {
 	font-weight: 700;
 	padding: 10px 16px;
 }
+.certificados-account-alert {
+	align-items: flex-start;
+	background: #111111;
+	border-left: 5px solid #feb20b;
+	border-radius: 8px;
+	box-shadow: 0 8px 22px rgba(0, 0, 0, 0.12);
+	box-sizing: border-box;
+	color: #ffffff;
+	display: flex;
+	gap: 12px;
+	margin: 18px 0;
+	max-width: 760px;
+	padding: 14px 16px;
+}
+.certificados-account-alert strong {
+	color: #feb20b;
+	display: block;
+	margin-bottom: 4px;
+}
+.certificados-account-alert p {
+	margin: 0;
+}
+.certificados-account-alert button {
+	background: transparent;
+	border: 0;
+	color: #feb20b;
+	cursor: pointer;
+	font-size: 22px;
+	font-weight: 700;
+	line-height: 1;
+	margin-left: auto;
+	padding: 0 2px;
+}
 .certificados-request-form {
 	border-top: 1px solid rgba(254, 178, 11, 0.45);
 	padding-top: 14px;
@@ -361,6 +394,11 @@ final class Certificados_Frontend {
 	max-width: 520px;
 	padding: 10px 12px;
 	width: 100%;
+}
+.certificados-request-form input[readonly] {
+	background: #f6f3eb;
+	color: #111111;
+	cursor: default;
 }
 .certificados-request-form input[type="text"]:focus,
 .certificados-request-form input[type="email"]:focus,
@@ -420,6 +458,7 @@ CSS;
 
 		echo '<h2>' . esc_html__( 'Mis certificados', 'certificados' ) . '</h2>';
 		$this->render_request_notices();
+		$this->render_account_name_notice();
 		$this->render_certificate_request_form();
 
 		if ( empty( $certificates ) ) {
@@ -485,14 +524,11 @@ CSS;
 
 		$user_id   = get_current_user_id();
 		$user      = get_userdata( $user_id );
-		$full_name = isset( $_POST['certificados_request_full_name'] ) ? sanitize_text_field( wp_unslash( $_POST['certificados_request_full_name'] ) ) : '';
+		$full_name = Certificados_PDF::get_user_certificate_name( $user_id );
 		$email     = isset( $_POST['certificados_request_email'] ) ? sanitize_email( wp_unslash( $_POST['certificados_request_email'] ) ) : '';
 		$course_id = isset( $_POST['certificados_request_course_id'] ) ? absint( wp_unslash( $_POST['certificados_request_course_id'] ) ) : 0;
 		$course    = $course_id && Certificados_Post_Types::COURSE_POST_TYPE === get_post_type( $course_id ) ? get_the_title( $course_id ) : '';
 
-		if ( ! $full_name && $user ) {
-			$full_name = $user->display_name;
-		}
 		if ( ! $email && $user ) {
 			$email = $user->user_email;
 		}
@@ -548,11 +584,33 @@ CSS;
 	}
 
 	/**
+	 * Renders a dismissible notice about the certificate account name.
+	 */
+	private function render_account_name_notice() {
+		$name = Certificados_PDF::get_user_certificate_name( get_current_user_id() );
+
+		echo '<div class="certificados-account-alert" data-certificados-name-notice>';
+		echo '<div>';
+		echo '<strong>' . esc_html__( 'Revisa tu nombre antes de solicitar el certificado', 'certificados' ) . '</strong>';
+		echo '<p>' . esc_html(
+			sprintf(
+				/* translators: %s: account name used on certificates. */
+				__( 'El certificado se creará con el nombre que aparece en tu cuenta: %s. Verifica que esté bien escrito e incluya tus 2 nombres y apellidos si corresponde antes de solicitarlo.', 'certificados' ),
+				$name
+			)
+		) . '</p>';
+		echo '</div>';
+		echo '<button type="button" aria-label="' . esc_attr__( 'Cerrar aviso', 'certificados' ) . '" onclick="this.closest(\'.certificados-account-alert\').remove();try{window.localStorage.setItem(\'certificadosNameNoticeClosed\',\'1\');}catch(e){}">&times;</button>';
+		echo '</div>';
+		echo '<script>try{if(window.localStorage.getItem("certificadosNameNoticeClosed")==="1"){var n=document.querySelector("[data-certificados-name-notice]");if(n){n.remove();}}}catch(e){}</script>';
+	}
+
+	/**
 	 * Renders the customer certificate request form.
 	 */
 	private function render_certificate_request_form() {
 		$user      = get_userdata( get_current_user_id() );
-		$full_name = $user ? $user->display_name : '';
+		$full_name = Certificados_PDF::get_user_certificate_name( get_current_user_id() );
 		$email     = $user ? $user->user_email : '';
 		$courses   = get_posts(
 			array(
@@ -567,9 +625,9 @@ CSS;
 		echo '<details class="certificados-request-box">';
 		echo '<summary class="button certificados-request-button">' . esc_html__( 'Solicitar certificado', 'certificados' ) . '</summary>';
 		echo '<form method="post" class="certificados-request-form">';
-		echo '<p>' . esc_html__( 'Indícanos tus datos y el curso que tomaste para revisar tu certificado manualmente.', 'certificados' ) . '</p>';
+		echo '<p>' . esc_html__( 'Indícanos tu correo y el curso que tomaste para revisar tu certificado manualmente.', 'certificados' ) . '</p>';
 		echo '<p><label for="certificados_request_full_name">' . esc_html__( 'Nombre completo', 'certificados' ) . '</label><br>';
-		echo '<input type="text" id="certificados_request_full_name" name="certificados_request_full_name" value="' . esc_attr( $full_name ) . '" required></p>';
+		echo '<input type="text" id="certificados_request_full_name" value="' . esc_attr( $full_name ) . '" readonly></p>';
 		echo '<p><label for="certificados_request_email">' . esc_html__( 'Correo', 'certificados' ) . '</label><br>';
 		echo '<input type="email" id="certificados_request_email" name="certificados_request_email" value="' . esc_attr( $email ) . '" required></p>';
 		echo '<p><label for="certificados_request_course_id">' . esc_html__( 'Curso que tomaste', 'certificados' ) . '</label><br>';
