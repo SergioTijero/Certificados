@@ -212,6 +212,7 @@ certificados_frontend_test_assert( false !== strpos( $html, 'Mis certificados' )
 certificados_frontend_test_assert( false !== strpos( $html, 'Solicitar certificado' ), 'certificate request button is rendered' );
 certificados_frontend_test_assert( false !== strpos( $html, 'certificados_request_action' ), 'certificate request form is rendered' );
 certificados_frontend_test_assert( false !== strpos( $html, 'certificados_request_course_id' ), 'certificate request course selector is rendered' );
+certificados_frontend_test_assert( false !== strpos( $html, '<option value="101">Taller de Marketing Digital</option>' ), 'certificate request selector renders course titles' );
 certificados_frontend_test_assert( false !== strpos( $html, 'Taller de Marketing Digital' ), 'assigned course is rendered' );
 certificados_frontend_test_assert( false !== strpos( $html, 'CERT-DEMO123' ), 'validation code is rendered' );
 certificados_frontend_test_assert( false !== strpos( $html, 'Descargar PDF' ), 'PDF download action is rendered' );

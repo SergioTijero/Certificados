@@ -576,7 +576,7 @@ CSS;
 		echo '<select id="certificados_request_course_id" name="certificados_request_course_id" required>';
 		echo '<option value="">' . esc_html__( 'Seleccionar curso', 'certificados' ) . '</option>';
 		foreach ( $courses as $course ) {
-			echo '<option value="' . esc_attr( $course->ID ) . '">' . esc_html( get_the_title( $course ) ) . '</option>';
+			echo '<option value="' . esc_attr( $course->ID ) . '">' . esc_html( $course->post_title ) . '</option>';
 		}
 		echo '</select></p>';
 		echo '<input type="hidden" name="certificados_request_action" value="request_certificate">';
