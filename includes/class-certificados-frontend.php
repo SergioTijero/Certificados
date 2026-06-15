@@ -353,7 +353,8 @@ final class Certificados_Frontend {
 	font-weight: 700;
 }
 .certificados-request-form input[type="text"],
-.certificados-request-form input[type="email"] {
+.certificados-request-form input[type="email"],
+.certificados-request-form select {
 	border: 1.5px solid rgba(17, 17, 17, 0.25);
 	border-radius: 6px;
 	box-sizing: border-box;
@@ -362,7 +363,8 @@ final class Certificados_Frontend {
 	width: 100%;
 }
 .certificados-request-form input[type="text"]:focus,
-.certificados-request-form input[type="email"]:focus {
+.certificados-request-form input[type="email"]:focus,
+.certificados-request-form select:focus {
 	border-color: #feb20b;
 	box-shadow: 0 0 0 3px rgba(254, 178, 11, 0.15);
 	outline: none;
@@ -485,7 +487,8 @@ CSS;
 		$user      = get_userdata( $user_id );
 		$full_name = isset( $_POST['certificados_request_full_name'] ) ? sanitize_text_field( wp_unslash( $_POST['certificados_request_full_name'] ) ) : '';
 		$email     = isset( $_POST['certificados_request_email'] ) ? sanitize_email( wp_unslash( $_POST['certificados_request_email'] ) ) : '';
-		$course    = isset( $_POST['certificados_request_course'] ) ? sanitize_text_field( wp_unslash( $_POST['certificados_request_course'] ) ) : '';
+		$course_id = isset( $_POST['certificados_request_course_id'] ) ? absint( wp_unslash( $_POST['certificados_request_course_id'] ) ) : 0;
+		$course    = $course_id && Certificados_Post_Types::COURSE_POST_TYPE === get_post_type( $course_id ) ? get_the_title( $course_id ) : '';
 
 		if ( ! $full_name && $user ) {
 			$full_name = $user->display_name;
@@ -520,6 +523,7 @@ CSS;
 		update_post_meta( $request_id, '_certificados_request_user_id', $user_id );
 		update_post_meta( $request_id, '_certificados_request_full_name', $full_name );
 		update_post_meta( $request_id, '_certificados_request_email', $email );
+		update_post_meta( $request_id, '_certificados_request_course_id', $course_id );
 		update_post_meta( $request_id, '_certificados_request_course', $course );
 		update_post_meta( $request_id, '_certificados_request_status', 'pending' );
 
@@ -550,6 +554,15 @@ CSS;
 		$user      = get_userdata( get_current_user_id() );
 		$full_name = $user ? $user->display_name : '';
 		$email     = $user ? $user->user_email : '';
+		$courses   = get_posts(
+			array(
+				'post_type'      => Certificados_Post_Types::COURSE_POST_TYPE,
+				'post_status'    => 'publish',
+				'posts_per_page' => -1,
+				'orderby'        => 'title',
+				'order'          => 'ASC',
+			)
+		);
 
 		echo '<details class="certificados-request-box">';
 		echo '<summary class="button certificados-request-button">' . esc_html__( 'Solicitar certificado', 'certificados' ) . '</summary>';
@@ -559,8 +572,13 @@ CSS;
 		echo '<input type="text" id="certificados_request_full_name" name="certificados_request_full_name" value="' . esc_attr( $full_name ) . '" required></p>';
 		echo '<p><label for="certificados_request_email">' . esc_html__( 'Correo', 'certificados' ) . '</label><br>';
 		echo '<input type="email" id="certificados_request_email" name="certificados_request_email" value="' . esc_attr( $email ) . '" required></p>';
-		echo '<p><label for="certificados_request_course">' . esc_html__( 'Curso que tomaste', 'certificados' ) . '</label><br>';
-		echo '<input type="text" id="certificados_request_course" name="certificados_request_course" required></p>';
+		echo '<p><label for="certificados_request_course_id">' . esc_html__( 'Curso que tomaste', 'certificados' ) . '</label><br>';
+		echo '<select id="certificados_request_course_id" name="certificados_request_course_id" required>';
+		echo '<option value="">' . esc_html__( 'Seleccionar curso', 'certificados' ) . '</option>';
+		foreach ( $courses as $course ) {
+			echo '<option value="' . esc_attr( $course->ID ) . '">' . esc_html( get_the_title( $course ) ) . '</option>';
+		}
+		echo '</select></p>';
 		echo '<input type="hidden" name="certificados_request_action" value="request_certificate">';
 		wp_nonce_field( 'certificados_request_certificate', 'certificados_request_nonce' );
 		echo '<p><button type="submit" class="button">' . esc_html__( 'Enviar solicitud', 'certificados' ) . '</button></p>';

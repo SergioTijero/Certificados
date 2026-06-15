@@ -138,6 +138,10 @@ function get_userdata( $user_id ) {
 }
 
 function get_the_title( $post_id ) {
+	if ( is_object( $post_id ) && isset( $post_id->ID ) ) {
+		$post_id = $post_id->ID;
+	}
+
 	return isset( $GLOBALS['certificados_frontend_test']['posts'][ $post_id ] )
 		? $GLOBALS['certificados_frontend_test']['posts'][ $post_id ]['title']
 		: '';
@@ -207,6 +211,7 @@ $html = ob_get_clean();
 certificados_frontend_test_assert( false !== strpos( $html, 'Mis certificados' ), 'account section title is rendered' );
 certificados_frontend_test_assert( false !== strpos( $html, 'Solicitar certificado' ), 'certificate request button is rendered' );
 certificados_frontend_test_assert( false !== strpos( $html, 'certificados_request_action' ), 'certificate request form is rendered' );
+certificados_frontend_test_assert( false !== strpos( $html, 'certificados_request_course_id' ), 'certificate request course selector is rendered' );
 certificados_frontend_test_assert( false !== strpos( $html, 'Taller de Marketing Digital' ), 'assigned course is rendered' );
 certificados_frontend_test_assert( false !== strpos( $html, 'CERT-DEMO123' ), 'validation code is rendered' );
 certificados_frontend_test_assert( false !== strpos( $html, 'Descargar PDF' ), 'PDF download action is rendered' );

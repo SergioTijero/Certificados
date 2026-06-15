@@ -213,10 +213,6 @@ final class Certificados_PDF {
 		$content .= self::pdf_text_color( 'F1', 7, 650, 378, 'Código:', 0.08, 0.08, 0.08 );
 		$content .= self::pdf_wrapped_text_color( 'F1', 7, 650, 368, $data['code'], 16, 8, 2, 0.08, 0.08, 0.08 );
 
-		if ( self::has_pdf_image( $images, 'QR1' ) ) {
-			$content .= self::pdf_wrapped_centered_text_color( 'F1', 6, 640, 449, 90, 'Escanea para validar', 24, 8, 1, 0.08, 0.08, 0.08 );
-		}
-
 		return $content;
 	}
 

@@ -333,6 +333,7 @@ final class Certificados_Admin {
 		$full_name      = get_post_meta( $post->ID, '_certificados_request_full_name', true );
 		$email          = get_post_meta( $post->ID, '_certificados_request_email', true );
 		$requested      = get_post_meta( $post->ID, '_certificados_request_course', true );
+		$requested_id   = absint( get_post_meta( $post->ID, '_certificados_request_course_id', true ) );
 		$status         = get_post_meta( $post->ID, '_certificados_request_status', true );
 		$certificate_id = absint( get_post_meta( $post->ID, '_certificados_request_certificate_id', true ) );
 		$courses        = get_posts(
@@ -364,7 +365,7 @@ final class Certificados_Admin {
 		echo '<select id="certificados_request_course_id" name="certificados_course_id" required>';
 		echo '<option value="">' . esc_html__( 'Seleccionar curso', 'certificados' ) . '</option>';
 		foreach ( $courses as $course ) {
-			echo '<option value="' . esc_attr( $course->ID ) . '">' . esc_html( get_the_title( $course ) ) . '</option>';
+			echo '<option value="' . esc_attr( $course->ID ) . '" ' . selected( $requested_id, $course->ID, false ) . '>' . esc_html( get_the_title( $course ) ) . '</option>';
 		}
 		echo '</select></p>';
 		echo '<p><label for="certificados_request_issue_date"><strong>' . esc_html__( 'Fecha de emisión', 'certificados' ) . '</strong></label><br>';
