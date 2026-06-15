@@ -342,12 +342,13 @@ final class Certificados_Frontend {
 }
 .certificados-account-alert {
 	align-items: flex-start;
-	background: #111111;
+	background: #fffaf0;
+	border: 1px solid rgba(254, 178, 11, 0.7);
 	border-left: 5px solid #feb20b;
 	border-radius: 8px;
-	box-shadow: 0 8px 22px rgba(0, 0, 0, 0.12);
+	box-shadow: 0 8px 20px rgba(17, 17, 17, 0.08);
 	box-sizing: border-box;
-	color: #ffffff;
+	color: #1f1f1f;
 	display: flex;
 	gap: 12px;
 	margin: 18px 0;
@@ -355,23 +356,27 @@ final class Certificados_Frontend {
 	padding: 14px 16px;
 }
 .certificados-account-alert strong {
-	color: #feb20b;
+	color: #111111;
 	display: block;
 	margin-bottom: 4px;
 }
 .certificados-account-alert p {
+	color: #3a3327;
 	margin: 0;
 }
 .certificados-account-alert button {
 	background: transparent;
 	border: 0;
-	color: #feb20b;
+	color: #8f6500;
 	cursor: pointer;
 	font-size: 22px;
 	font-weight: 700;
 	line-height: 1;
 	margin-left: auto;
 	padding: 0 2px;
+}
+.certificados-account-alert button:hover {
+	color: #111111;
 }
 .certificados-request-form {
 	border-top: 1px solid rgba(254, 178, 11, 0.45);
