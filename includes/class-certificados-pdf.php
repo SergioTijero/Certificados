@@ -207,7 +207,7 @@ final class Certificados_PDF {
 
 		$content .= self::pdf_wrapped_centered_text_color( 'F2', 29, 130, 238, 532, strtoupper( $data['participant'] ), 34, 32, 2, 0.996, 0.698, 0.043 );
 		$content .= self::pdf_diamond_rule( 218, 214, 356 );
-		$content .= self::pdf_wrapped_centered_text_color( 'F2', 12, 196, 184, 400, $data['message'], 56, 15, 4, 0.08, 0.08, 0.08 );
+		$content .= self::pdf_wrapped_centered_text_color( 'F2', 12, 186, 184, 420, $data['message'], 56, 15, 4, 0.08, 0.08, 0.08 );
 		$content .= self::pdf_reference_date_line( isset( $data['issue_date'] ) ? $data['issue_date'] : '', isset( $data['formatted_date'] ) ? $data['formatted_date'] : '', 396, 116 );
 
 		$content .= self::pdf_text_color( 'F1', 7, 650, 378, 'Código:', 0.08, 0.08, 0.08 );
