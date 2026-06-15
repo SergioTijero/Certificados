@@ -371,10 +371,9 @@ final class Certificados_PDF {
 	 */
 	private static function pdf_wrapped_centered_text_color( $font, $size, $x, $y, $width, $text, $max_chars, $line_height, $max_lines, $r, $g, $b ) {
 		$content = '';
-		$factor  = ( 'F2' === $font && strtoupper( $text ) === $text ) ? 0.62 : 0.48;
 
 		foreach ( self::wrap_pdf_text( $text, $max_chars, $max_lines ) as $index => $line ) {
-			$estimated_width = strlen( self::escape_pdf_text( $line ) ) * $size * $factor;
+			$estimated_width = self::estimate_pdf_text_width( $font, $size, $line );
 			$line_x          = $x + max( 0, ( $width - $estimated_width ) / 2 );
 			$content        .= self::pdf_text_color( $font, $size, (int) $line_x, $y - ( $index * $line_height ), $line, $r, $g, $b );
 		}
@@ -431,7 +430,11 @@ final class Certificados_PDF {
 	 * @return float
 	 */
 	private static function estimate_pdf_text_width( $font, $size, $text ) {
-		$factor = ( 'F2' === $font && strtoupper( $text ) === $text ) ? 0.62 : 0.48;
+		if ( 'F2' === $font ) {
+			$factor = ( strtoupper( $text ) === $text ) ? 0.62 : 0.52;
+		} else {
+			$factor = 0.48;
+		}
 
 		return strlen( self::escape_pdf_text( $text ) ) * $size * $factor;
 	}
