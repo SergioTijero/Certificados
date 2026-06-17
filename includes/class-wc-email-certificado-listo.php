@@ -40,19 +40,19 @@ if ( class_exists( 'WC_Email' ) ) {
 			add_action( 'certificados_enviar_correo_certificado_listo_notification', array( $this, 'trigger' ) );
 		}
 
-		/**
-		 * Triggers the email.
-		 *
-		 * @param int $certificate_id Certificate ID.
-		 */
 		public function trigger( $certificate_id ) {
+			$log_file = CERTIFICADOS_PLUGIN_DIR . 'certificados-debug.log';
+			file_put_contents( $log_file, date('[Y-m-d H:i:s] ') . "WC_Email_Certificado_Listo::trigger called for ID: $certificate_id\n", FILE_APPEND );
+
 			if ( ! $certificate_id ) {
+				file_put_contents( $log_file, date('[Y-m-d H:i:s] ') . " - trigger Error: ID is empty.\n", FILE_APPEND );
 				return;
 			}
 
 			$user_id = absint( get_post_meta( $certificate_id, '_certificados_user_id', true ) );
 			$user    = get_userdata( $user_id );
 			if ( ! $user || ! $user->user_email ) {
+				file_put_contents( $log_file, date('[Y-m-d H:i:s] ') . " - trigger Error: User or email empty.\n", FILE_APPEND );
 				return;
 			}
 
@@ -64,12 +64,15 @@ if ( class_exists( 'WC_Email' ) ) {
 
 			$this->placeholders['{course_name}'] = $course_title;
 
+			file_put_contents( $log_file, date('[Y-m-d H:i:s] ') . " - trigger Info: is_enabled: " . ($this->is_enabled() ? 'yes' : 'no') . ", recipient: " . $this->get_recipient() . "\n", FILE_APPEND );
+
 			if ( ! $this->is_enabled() || ! $this->get_recipient() ) {
 				return;
 			}
 
 			// Send the email.
-			$this->send( $this->get_recipient(), $this->get_subject(), $this->get_content(), $this->get_headers(), $this->get_attachments() );
+			$result = $this->send( $this->get_recipient(), $this->get_subject(), $this->get_content(), $this->get_headers(), $this->get_attachments() );
+			file_put_contents( $log_file, date('[Y-m-d H:i:s] ') . " - trigger Result: send output was: " . ($result ? 'success' : 'fail') . "\n", FILE_APPEND );
 		}
 
 		/**

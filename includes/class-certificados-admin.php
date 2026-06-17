@@ -1125,27 +1125,38 @@ JS;
 	 * @param int $certificate_id Certificate ID.
 	 */
 	public function maybe_send_certificate_email( $certificate_id ) {
+		$log_file = CERTIFICADOS_PLUGIN_DIR . 'certificados-debug.log';
+		file_put_contents( $log_file, date('[Y-m-d H:i:s] ') . "maybe_send_certificate_email called for ID: $certificate_id\n", FILE_APPEND );
+
 		if ( 'cert_certificate' !== get_post_type( $certificate_id ) ) {
+			file_put_contents( $log_file, date('[Y-m-d H:i:s] ') . " - Error: Incorrect post type: " . get_post_type( $certificate_id ) . "\n", FILE_APPEND );
 			return;
 		}
 
-		if ( 'publish' !== get_post_status( $certificate_id ) ) {
+		$status = get_post_status( $certificate_id );
+		if ( 'publish' !== $status ) {
+			file_put_contents( $log_file, date('[Y-m-d H:i:s] ') . " - Error: Post status is not publish: $status\n", FILE_APPEND );
 			return;
 		}
 
 		if ( get_post_meta( $certificate_id, '_certificados_email_sent', true ) ) {
+			file_put_contents( $log_file, date('[Y-m-d H:i:s] ') . " - Info: Email already sent previously.\n", FILE_APPEND );
 			return;
 		}
 
 		$user_id = absint( get_post_meta( $certificate_id, '_certificados_user_id', true ) );
 		if ( ! $user_id ) {
+			file_put_contents( $log_file, date('[Y-m-d H:i:s] ') . " - Error: No user ID assigned.\n", FILE_APPEND );
 			return;
 		}
 
 		$user = get_userdata( $user_id );
 		if ( ! $user || ! $user->user_email ) {
+			file_put_contents( $log_file, date('[Y-m-d H:i:s] ') . " - Error: User not found or has no email: " . ($user ? $user->user_email : 'no user') . "\n", FILE_APPEND );
 			return;
 		}
+
+		file_put_contents( $log_file, date('[Y-m-d H:i:s] ') . " - Success: Triggering action for user: " . $user->user_email . "\n", FILE_APPEND );
 
 		// Trigger the WooCommerce email.
 		do_action( 'certificados_enviar_correo_certificado_listo_notification', $certificate_id );
