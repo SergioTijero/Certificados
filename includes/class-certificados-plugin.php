@@ -49,6 +49,20 @@ final class Certificados_Plugin {
 		add_action( 'admin_init', array( __CLASS__, 'maybe_update_role_capabilities' ) );
 		add_action( 'admin_init', array( __CLASS__, 'maybe_flush_rewrite_rules' ) );
 		add_filter( 'woocommerce_email_classes', array( $this, 'register_woocommerce_emails' ) );
+		add_filter( 'woocommerce_email_actions', array( $this, 'register_woocommerce_email_actions' ) );
+	}
+
+	/**
+	 * Registers custom WooCommerce email actions.
+	 *
+	 * @param array $actions Existing WooCommerce email actions.
+	 * @return array
+	 */
+	public function register_woocommerce_email_actions( $actions ) {
+		$actions[] = 'certificados_enviar_correo_certificado_listo_notification';
+		$actions[] = 'certificados_enviar_correo_certificado_descargado_admin_notification';
+
+		return $actions;
 	}
 
 	/**

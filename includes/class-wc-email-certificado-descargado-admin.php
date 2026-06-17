@@ -38,6 +38,9 @@ if ( class_exists( 'WC_Email' ) ) {
 			$this->template_base = CERTIFICADOS_PLUGIN_DIR . 'templates/';
 			$this->recipient     = $this->get_option( 'recipient', get_option( 'admin_email' ) );
 
+			$log_file = CERTIFICADOS_PLUGIN_DIR . 'certificados-debug.log';
+			file_put_contents( $log_file, date('[Y-m-d H:i:s] ') . "WC_Email_Certificado_Descargado_Admin instantiated\n", FILE_APPEND );
+
 			// Hook action to trigger email.
 			add_action( 'certificados_enviar_correo_certificado_descargado_admin_notification', array( $this, 'trigger' ) );
 		}

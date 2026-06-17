@@ -36,6 +36,9 @@ if ( class_exists( 'WC_Email' ) ) {
 			// Default values.
 			$this->template_base = CERTIFICADOS_PLUGIN_DIR . 'templates/';
 
+			$log_file = CERTIFICADOS_PLUGIN_DIR . 'certificados-debug.log';
+			file_put_contents( $log_file, date('[Y-m-d H:i:s] ') . "WC_Email_Certificado_Listo instantiated\n", FILE_APPEND );
+
 			// Hook action to trigger email.
 			add_action( 'certificados_enviar_correo_certificado_listo_notification', array( $this, 'trigger' ) );
 		}
