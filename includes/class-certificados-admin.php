@@ -47,6 +47,7 @@ final class Certificados_Admin {
 		add_action( 'save_post_' . Certificados_Post_Types::CERTIFICATE_POST_TYPE, array( $this, 'save_certificate' ) );
 		add_action( 'save_post_' . Certificados_Post_Types::REQUEST_POST_TYPE, array( $this, 'save_request' ) );
 		add_action( 'admin_notices', array( $this, 'woocommerce_notice' ) );
+		add_action( 'admin_notices', array( $this, 'admin_resend_notice' ) );
 		add_filter( 'manage_' . Certificados_Post_Types::CERTIFICATE_POST_TYPE . '_posts_columns', array( $this, 'certificate_columns' ) );
 		add_action( 'manage_' . Certificados_Post_Types::CERTIFICATE_POST_TYPE . '_posts_custom_column', array( $this, 'render_certificate_column' ), 10, 2 );
 		add_filter( 'manage_' . Certificados_Post_Types::REQUEST_POST_TYPE . '_posts_columns', array( $this, 'request_columns' ) );
@@ -55,6 +56,7 @@ final class Certificados_Admin {
 		add_action( 'admin_post_certificados_bulk_assign', array( $this, 'handle_bulk_assignment' ) );
 		add_action( 'wp_ajax_certificados_search_customers', array( $this, 'ajax_search_customers' ) );
 		add_action( 'transition_post_status', array( $this, 'on_certificate_status_transition' ), 10, 3 );
+		add_action( 'admin_post_certificados_resend_email', array( $this, 'handle_resend_email' ) );
 	}
 
 	/**
@@ -237,6 +239,18 @@ final class Certificados_Admin {
 			<p>
 				<a class="button button-primary" href="<?php echo esc_url( $this->get_admin_pdf_url( $post->ID ) ); ?>">
 					<?php esc_html_e( 'Descargar PDF', 'certificados' ); ?>
+				</a>
+			</p>
+			<p>
+				<strong><?php esc_html_e( 'Notificación por correo al cliente:', 'certificados' ); ?></strong>
+				<?php if ( get_post_meta( $post->ID, '_certificados_email_sent', true ) ) : ?>
+					<span style="color:#008a20; font-weight:600;"><?php esc_html_e( 'Enviado', 'certificados' ); ?></span>
+				<?php else : ?>
+					<span style="color:#b32d2e; font-weight:600;"><?php esc_html_e( 'No enviado', 'certificados' ); ?></span>
+				<?php endif; ?>
+				<br>
+				<a class="button button-secondary" style="margin-top: 6px;" href="<?php echo esc_url( $this->get_admin_resend_email_url( $post->ID ) ); ?>">
+					<?php esc_html_e( 'Enviar / Reenviar correo de aviso', 'certificados' ); ?>
 				</a>
 			</p>
 
@@ -931,6 +945,25 @@ final class Certificados_Admin {
 	}
 
 	/**
+	 * Builds a secure admin resend email URL.
+	 *
+	 * @param int $certificate_id Certificate post ID.
+	 * @return string
+	 */
+	private function get_admin_resend_email_url( $certificate_id ) {
+		return wp_nonce_url(
+			add_query_arg(
+				array(
+					'action'         => 'certificados_resend_email',
+					'certificate_id' => absint( $certificate_id ),
+				),
+				admin_url( 'admin-post.php' )
+			),
+			'certificados_admin_resend_' . absint( $certificate_id )
+		);
+	}
+
+	/**
 	 * Checks whether a customer already has a certificate for a course.
 	 *
 	 * @param int $course_id Course post ID.
@@ -1163,6 +1196,51 @@ JS;
 
 		// Mark as sent.
 		update_post_meta( $certificate_id, '_certificados_email_sent', '1' );
+	}
+
+	/**
+	 * Handles manual email resending from the admin.
+	 */
+	public function handle_resend_email() {
+		$certificate_id = isset( $_GET['certificate_id'] ) ? absint( wp_unslash( $_GET['certificate_id'] ) ) : 0;
+
+		if ( ! $certificate_id || ! current_user_can( 'edit_post', $certificate_id ) ) {
+			wp_die(
+				esc_html__( 'No tienes permiso para realizar esta acción.', 'certificados' ),
+				esc_html__( 'Permiso denegado', 'certificados' ),
+				array( 'response' => 403 )
+			);
+		}
+
+		check_admin_referer( 'certificados_admin_resend_' . $certificate_id );
+
+		// Temporarily clear the sent status to allow sending again.
+		delete_post_meta( $certificate_id, '_certificados_email_sent' );
+
+		// Attempt to send email.
+		$this->maybe_send_certificate_email( $certificate_id );
+
+		// Redirect back to edit page.
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'post'    => $certificate_id,
+					'action'  => 'edit',
+					'resent'  => '1',
+				),
+				admin_url( 'post.php' )
+			)
+		);
+		exit;
+	}
+
+	/**
+	 * Shows an admin notice when a certificate email is manually resent.
+	 */
+	public function admin_resend_notice() {
+		if ( isset( $_GET['resent'] ) && '1' === $_GET['resent'] ) {
+			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Correo de aviso enviado con éxito (si el correo está activo y el cliente tiene un email válido).', 'certificados' ) . '</p></div>';
+		}
 	}
 
 	/**
