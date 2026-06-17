@@ -54,6 +54,7 @@ final class Certificados_Admin {
 		add_action( 'admin_post_certificados_download_pdf', array( $this, 'download_certificate_pdf' ) );
 		add_action( 'admin_post_certificados_bulk_assign', array( $this, 'handle_bulk_assignment' ) );
 		add_action( 'wp_ajax_certificados_search_customers', array( $this, 'ajax_search_customers' ) );
+		add_action( 'transition_post_status', array( $this, 'on_certificate_status_transition' ), 10, 3 );
 	}
 
 	/**
@@ -238,6 +239,38 @@ final class Certificados_Admin {
 					<?php esc_html_e( 'Descargar PDF', 'certificados' ); ?>
 				</a>
 			</p>
+
+			<hr style="margin: 20px 0; border: 0; border-top: 1px solid #ccd0d4;">
+
+			<h3><?php esc_html_e( 'Seguimiento de descargas', 'certificados' ); ?></h3>
+			<?php
+			$count = (int) get_post_meta( $post->ID, '_certificados_download_count', true );
+			if ( $count > 0 ) :
+				$first_date = get_post_meta( $post->ID, '_certificados_first_download_date', true );
+				$last_date  = get_post_meta( $post->ID, '_certificados_last_download_date', true );
+				?>
+				<p>
+					<span class="dashicons dashicons-download" style="color:#008a20; vertical-align: text-bottom; margin-right: 5px;"></span>
+					<strong><?php esc_html_e( 'Descargado por el cliente:', 'certificados' ); ?></strong>
+					<span style="color:#008a20; font-weight:600;"><?php esc_html_e( 'Sí', 'certificados' ); ?></span>
+				</p>
+				<ul>
+					<li><strong><?php esc_html_e( 'Total de descargas:', 'certificados' ); ?></strong> <?php echo esc_html( $count ); ?></li>
+					<?php if ( $first_date ) : ?>
+						<li><strong><?php esc_html_e( 'Primera descarga:', 'certificados' ); ?></strong> <?php echo esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $first_date ) ) ); ?></li>
+					<?php endif; ?>
+					<?php if ( $last_date ) : ?>
+						<li><strong><?php esc_html_e( 'Última descarga:', 'certificados' ); ?></strong> <?php echo esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $last_date ) ) ); ?></li>
+					<?php endif; ?>
+				</ul>
+			<?php else : ?>
+				<p>
+					<span class="dashicons dashicons-download" style="color:#b32d2e; vertical-align: text-bottom; margin-right: 5px;"></span>
+					<strong><?php esc_html_e( 'Descargado por el cliente:', 'certificados' ); ?></strong>
+					<span style="color:#b32d2e; font-weight:600;"><?php esc_html_e( 'No', 'certificados' ); ?></span>
+				</p>
+				<p class="description"><?php esc_html_e( 'El cliente aún no ha descargado este certificado desde la página de su cuenta.', 'certificados' ); ?></p>
+			<?php endif; ?>
 		<?php endif; ?>
 		<?php
 	}
@@ -423,6 +456,8 @@ final class Certificados_Admin {
 		if ( ! get_post_meta( $post_id, '_certificados_code', true ) ) {
 			update_post_meta( $post_id, '_certificados_code', $this->generate_unique_code() );
 		}
+
+		$this->maybe_send_certificate_email( $post_id );
 	}
 
 	/**
@@ -515,6 +550,8 @@ final class Certificados_Admin {
 			update_post_meta( $certificate_id, '_certificados_issue_date', $issue_date );
 			update_post_meta( $certificate_id, '_certificados_message', $message );
 			update_post_meta( $certificate_id, '_certificados_code', $this->generate_unique_code() );
+
+			$this->maybe_send_certificate_email( $certificate_id );
 			$created++;
 		}
 
@@ -603,6 +640,7 @@ final class Certificados_Admin {
 		$columns['certificados_status']     = __( 'Estado', 'certificados' );
 		$columns['certificados_validate']   = __( 'Validación', 'certificados' );
 		$columns['certificados_pdf']        = __( 'PDF', 'certificados' );
+		$columns['certificados_downloaded'] = __( 'Descargado', 'certificados' );
 		$columns['date']                    = $date;
 
 		return $columns;
@@ -657,6 +695,24 @@ final class Certificados_Admin {
 
 			case 'certificados_pdf':
 				echo '<a href="' . esc_url( $this->get_admin_pdf_url( $post_id ) ) . '">' . esc_html__( 'Descargar', 'certificados' ) . '</a>';
+				break;
+
+			case 'certificados_downloaded':
+				$count = (int) get_post_meta( $post_id, '_certificados_download_count', true );
+				if ( $count > 0 ) {
+					$last_date = get_post_meta( $post_id, '_certificados_last_download_date', true );
+					$date_display = '';
+					if ( $last_date ) {
+						$date_display = sprintf(
+							' <span style="font-size:11px;color:#666;" title="%s">(Última vez: %s)</span>',
+							esc_attr( $last_date ),
+							esc_html( date_i18n( get_option( 'date_format' ), strtotime( $last_date ) ) )
+						);
+					}
+					echo '<span style="color:#008a20;font-weight:600;">' . esc_html__( 'Sí', 'certificados' ) . '</span> (' . $count . ')' . $date_display;
+				} else {
+					echo '<span style="color:#b32d2e;font-weight:600;">' . esc_html__( 'No', 'certificados' ) . '</span>';
+				}
 				break;
 		}
 	}
@@ -756,6 +812,8 @@ final class Certificados_Admin {
 		update_post_meta( $certificate_id, '_certificados_issue_date', $issue_date );
 		update_post_meta( $certificate_id, '_certificados_message', $message );
 		update_post_meta( $certificate_id, '_certificados_code', $this->generate_unique_code() );
+
+		$this->maybe_send_certificate_email( $certificate_id );
 
 		update_post_meta( $request_id, '_certificados_request_status', 'approved' );
 		update_post_meta( $request_id, '_certificados_request_certificate_id', $certificate_id );
@@ -1042,6 +1100,58 @@ final class Certificados_Admin {
 	});
 }());
 JS;
+	}
+
+	/**
+	 * Transition post status handler for certificates.
+	 *
+	 * @param string  $new_status New post status.
+	 * @param string  $old_status Old post status.
+	 * @param WP_Post $post Post object.
+	 */
+	public function on_certificate_status_transition( $new_status, $old_status, $post ) {
+		if ( Certificados_Post_Types::CERTIFICATE_POST_TYPE !== $post->post_type ) {
+			return;
+		}
+
+		if ( 'publish' === $new_status && 'publish' !== $old_status ) {
+			$this->maybe_send_certificate_email( $post->ID );
+		}
+	}
+
+	/**
+	 * Sends the certificate ready email if conditions are met.
+	 *
+	 * @param int $certificate_id Certificate ID.
+	 */
+	public function maybe_send_certificate_email( $certificate_id ) {
+		if ( 'cert_certificate' !== get_post_type( $certificate_id ) ) {
+			return;
+		}
+
+		if ( 'publish' !== get_post_status( $certificate_id ) ) {
+			return;
+		}
+
+		if ( get_post_meta( $certificate_id, '_certificados_email_sent', true ) ) {
+			return;
+		}
+
+		$user_id = absint( get_post_meta( $certificate_id, '_certificados_user_id', true ) );
+		if ( ! $user_id ) {
+			return;
+		}
+
+		$user = get_userdata( $user_id );
+		if ( ! $user || ! $user->user_email ) {
+			return;
+		}
+
+		// Trigger the WooCommerce email.
+		do_action( 'certificados_enviar_correo_certificado_listo_notification', $certificate_id );
+
+		// Mark as sent.
+		update_post_meta( $certificate_id, '_certificados_email_sent', '1' );
 	}
 
 	/**

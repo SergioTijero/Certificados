@@ -48,7 +48,25 @@ final class Certificados_Plugin {
 
 		add_action( 'admin_init', array( __CLASS__, 'maybe_update_role_capabilities' ) );
 		add_action( 'admin_init', array( __CLASS__, 'maybe_flush_rewrite_rules' ) );
+		add_filter( 'woocommerce_email_classes', array( $this, 'register_woocommerce_emails' ) );
 	}
+
+	/**
+	 * Registers custom WooCommerce emails.
+	 *
+	 * @param array $email_classes Existing WooCommerce email classes.
+	 * @return array
+	 */
+	public function register_woocommerce_emails( $email_classes ) {
+		require_once CERTIFICADOS_PLUGIN_DIR . 'includes/class-wc-email-certificado-listo.php';
+		require_once CERTIFICADOS_PLUGIN_DIR . 'includes/class-wc-email-certificado-descargado-admin.php';
+
+		$email_classes['WC_Email_Certificado_Listo']            = new WC_Email_Certificado_Listo();
+		$email_classes['WC_Email_Certificado_Descargado_Admin'] = new WC_Email_Certificado_Descargado_Admin();
+
+		return $email_classes;
+	}
+
 
 	/**
 	 * Activation tasks.

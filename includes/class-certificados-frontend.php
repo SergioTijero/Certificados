@@ -729,6 +729,24 @@ CSS;
 			);
 		}
 
+		// Track download if downloaded by the student.
+		if ( get_current_user_id() === $user_id ) {
+			$download_count = (int) get_post_meta( $certificate_id, '_certificados_download_count', true );
+			update_post_meta( $certificate_id, '_certificados_download_count', $download_count + 1 );
+
+			if ( ! get_post_meta( $certificate_id, '_certificados_first_download_date', true ) ) {
+				update_post_meta( $certificate_id, '_certificados_first_download_date', current_time( 'mysql' ) );
+
+				// Send email notification to admin/shop manager on first download only.
+				if ( ! get_post_meta( $certificate_id, '_certificados_download_notification_sent', true ) ) {
+					do_action( 'certificados_enviar_correo_certificado_descargado_admin_notification', $certificate_id );
+					update_post_meta( $certificate_id, '_certificados_download_notification_sent', '1' );
+				}
+			}
+
+			update_post_meta( $certificate_id, '_certificados_last_download_date', current_time( 'mysql' ) );
+		}
+
 		Certificados_PDF::stream( $certificate_id );
 	}
 
