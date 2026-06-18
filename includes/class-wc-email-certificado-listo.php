@@ -25,6 +25,7 @@ if ( class_exists( 'WC_Email' ) ) {
 			$this->description    = __( 'Este correo electrónico se envía al cliente cuando su certificado está listo y disponible.', 'certificados' );
 			$this->template_html  = 'emails/certificado-listo.php';
 			$this->template_plain = 'emails/plain/certificado-listo.php';
+			$this->customer_email = true;
 			$this->placeholders   = array(
 				'{course_name}' => '',
 				'{site_title}'  => $this->get_blogname(),
