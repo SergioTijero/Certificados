@@ -1191,8 +1191,8 @@ JS;
 
 		file_put_contents( $log_file, date('[Y-m-d H:i:s] ') . " - Success: Triggering action for user: " . $user->user_email . "\n", FILE_APPEND );
 
-		// Trigger the WooCommerce email.
-		do_action( 'certificados_enviar_correo_certificado_listo_notification', $certificate_id );
+		// Trigger the WooCommerce email (base action name; WC appends _notification).
+		do_action( 'certificados_certificado_listo', $certificate_id );
 
 		// Mark as sent.
 		update_post_meta( $certificate_id, '_certificados_email_sent', '1' );

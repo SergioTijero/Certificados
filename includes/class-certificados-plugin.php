@@ -55,12 +55,17 @@ final class Certificados_Plugin {
 	/**
 	 * Registers custom WooCommerce email actions.
 	 *
+	 * WooCommerce automatically appends '_notification' when re-firing.
+	 * So we register the BASE action name here, and fire do_action() with
+	 * this same base name. WooCommerce then fires base_notification which
+	 * is what the email classes listen on.
+	 *
 	 * @param array $actions Existing WooCommerce email actions.
 	 * @return array
 	 */
 	public function register_woocommerce_email_actions( $actions ) {
-		$actions[] = 'certificados_enviar_correo_certificado_listo_notification';
-		$actions[] = 'certificados_enviar_correo_certificado_descargado_admin_notification';
+		$actions[] = 'certificados_certificado_listo';
+		$actions[] = 'certificados_certificado_descargado_admin';
 
 		return $actions;
 	}

@@ -739,7 +739,7 @@ CSS;
 
 				// Send email notification to admin/shop manager on first download only.
 				if ( ! get_post_meta( $certificate_id, '_certificados_download_notification_sent', true ) ) {
-					do_action( 'certificados_enviar_correo_certificado_descargado_admin_notification', $certificate_id );
+					do_action( 'certificados_certificado_descargado_admin', $certificate_id );
 					update_post_meta( $certificate_id, '_certificados_download_notification_sent', '1' );
 				}
 			}
